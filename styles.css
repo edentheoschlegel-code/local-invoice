@@ -1,0 +1,1643 @@
+/* ── Local Invoice — private, in-browser invoice maker ─────────────── */
+:root {
+  --brand: #4338ca;
+  --brand-dark: #3730a3;
+  --brand-light: #818cf8;
+  --brand-soft: #eef2ff;
+  --brand-border: #c7d2fe;
+  --ink: #1a1a2e;
+  --muted: #626873;
+  --line: #e7e8ee;
+  --bg: #f7f7fb;
+  --card: #ffffff;
+  --ok: #0f766e;
+  --danger: #b91c1c;
+  /* ── Shadow ladder (Elevation v1) ──────────────────────────────────
+     Soft, layered, low-opacity rungs shared across the four sibling apps.
+     sm = resting cards, md = hovered/summary surfaces, lg = modals/popovers.
+     --shadow is retained (mapped to sm) so existing references stay valid. */
+  --shadow-sm: 0 1px 2px rgba(16,24,40,.04), 0 1px 3px rgba(16,24,40,.06);
+  --shadow-md: 0 2px 4px rgba(16,24,40,.05), 0 6px 16px rgba(16,24,40,.08);
+  --shadow-lg: 0 12px 24px rgba(16,24,40,.10), 0 24px 56px rgba(16,24,40,.12);
+  --shadow: var(--shadow-sm);
+  /* Status chips (success / error). Tokenized so dark mode can override them;
+     values below match the previous hard-coded light colors exactly. */
+  --ok-bg: #ecfdf5;
+  --err: #b91c1c;
+  --err-bg: #fef2f2;
+  /* Amber — honest "heads up, not an error" tone (mint-code fallback, warnings) */
+  --amber-bg: #fffbeb;
+  --amber-ink: #92600a;
+  --amber-border: #fde68a;
+  /* Topbar glass + input fill + subtle hovers — tokenized for dark mode.
+     Light values are identical to what was previously hard-coded inline. */
+  --topbar-bg: rgba(255,255,255,.85);
+  --pill-bg: #f0fdf9;
+  --pill-border: #99f6e4;
+  --input-bg: #fbfbfd;
+  --input-bg-focus: #ffffff;
+  --chip-neutral-bg: #f1f1f5;
+  --danger-soft-bg: #fee2e2;
+  --footer-ink: #686e7d;
+  --preview-line-soft: #f2f2f6;
+  /* Fill color for solid brand controls that carry WHITE label text (primary
+     button, active chips, active kind-toggle). Equals --brand in light mode;
+     dark mode deepens it so white text keeps AA contrast without changing the
+     --brand hue token (which is used for brand-colored TEXT elsewhere). */
+  --brand-fill: var(--brand);
+  /* Same idea for the destructive button fill under white text. */
+  --danger-fill: var(--danger);
+
+  /* ── Nav shell + app frame (re-skin v2) ──────────────────────────────
+     Every new surface below carries an explicit dark value further down so
+     the whole shell themes cleanly (the shipped dark mode only covered a few
+     pills before this). All hues sit on the shipped --brand #4338ca ramp. */
+  --sidebar-bg: #ffffff;
+  --sidebar-border: #e7e8ee;
+  --nav-ink: #4b5563;
+  --nav-hover-bg: #f4f4fb;
+  --nav-active-bg: #eef2ff;
+  --nav-active-ink: #4338ca;
+  --app-bg: #f7f7fb;
+  --panel-head-ink: #1a1a2e;
+  --scrim: rgba(20,20,40,.42);
+
+  /* Stat tiles (dashboard + list headers) — soft tinted icon wells. */
+  --stat-icon-brand-bg: #eef2ff; --stat-icon-brand-ink: #4338ca;
+  --stat-icon-ok-bg: #ecfdf5;    --stat-icon-ok-ink: #0f766e;
+  --stat-icon-warn-bg: #fff7ed;  --stat-icon-warn-ink: #b45309;
+  --stat-icon-danger-bg: #fef2f2;--stat-icon-danger-ink: #b91c1c;
+  --stat-icon-neutral-bg: #eef2f7;--stat-icon-neutral-ink: #475569;
+
+  /* Status pills (list rows). Overdue/Draft/Outstanding/Pending/Inactive get
+     explicit dark values below alongside the shipped Paid/Sent. */
+  --pill-paid-bg: #ecfdf5;    --pill-paid-ink: #0f766e;
+  --pill-sent-bg: #eef2ff;    --pill-sent-ink: #3730a3;
+  --pill-draft-bg: #f1f1f5;   --pill-draft-ink: #565c68;
+  --pill-overdue-bg: #fef2f2; --pill-overdue-ink: #b91c1c;
+  --pill-pending-bg: #fff7ed; --pill-pending-ink: #b45309;
+  --pill-inactive-bg: #f1f1f5;--pill-inactive-ink: #565c68;
+
+  /* Table + side-panel surfaces. */
+  --table-head-ink: #6b7280;
+  --table-row-hover: #f7f7fb;
+  --table-border: #eceef4;
+  --sidepanel-bg: #ffffff;
+  --sidepanel-border: #e7e8ee;
+
+  /* Chart (line/area) — gridlines, axis, area gradient stops, line. */
+  --chart-grid: #eceef4;
+  --chart-axis-ink: #9ca3af;
+  --chart-line: #4338ca;
+  --chart-area-top: rgba(67,56,202,.20);
+  --chart-area-bottom: rgba(67,56,202,.02);
+  --chart-dot: #4338ca;
+
+  /* ── Estimate accent (amber/gold) ───────────────────────────────────
+     Estimates get their OWN colour family so they can never be mistaken for
+     an indigo invoice. Sits beside the --brand ramp, not on it. --est is the
+     solid badge/accent hue; --est-soft is the tinted surface; --est-ink is
+     text on a soft surface; --est-on is label text ON a solid --est fill. */
+  --est: #b45309;
+  --est-soft: #fff7ed;
+  --est-border: #fdba74;
+  --est-ink: #92400e;
+  --est-on: #ffffff;
+}
+
+/* ── Dark mode ─────────────────────────────────────────────────────────
+   Opt-in overlay: only the app CHROME goes dark. The invoice preview is
+   "paper" (it represents the exported PDF) and is deliberately kept LIGHT
+   below so what the user sees matches what exports. */
+[data-theme="dark"] {
+  --brand: #818cf8;        /* lightened so it stays vivid & AA on dark chrome */
+  --brand-dark: #a5b4fc;   /* used for text on dark → lighter than base brand */
+  --brand-light: #a5b4fc;
+  --brand-soft: #262a3d;   /* deep indigo-tinted surface */
+  --brand-border: #3b3f57;
+  --ink: #e8e8ed;
+  --muted: #9aa0b0;
+  --line: #2c2e38;
+  --bg: #15161a;
+  --card: #1c1d22;
+  --ok: #34d399;
+  --danger: #f87171;
+  /* Dark-mode shadow ladder — higher opacity, cooler (blue-black) so raised
+     surfaces still read against the near-black chrome. */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,.40), 0 1px 3px rgba(0,0,0,.34);
+  --shadow-md: 0 2px 6px rgba(0,0,0,.45), 0 8px 20px rgba(0,0,0,.40);
+  --shadow-lg: 0 14px 30px rgba(0,0,0,.55), 0 24px 60px rgba(0,0,0,.50);
+  --shadow: var(--shadow-sm);
+  --ok-bg: #10281f;
+  --err: #fca5a5;
+  --err-bg: #2a1416;
+  --amber-bg: #2a2213;
+  --amber-ink: #fcd34d;
+  --amber-border: #4d3d18;
+  --topbar-bg: rgba(21,22,26,.85);
+  --pill-bg: #0f2820;
+  --pill-border: #1e5045;
+  --input-bg: #23252d;
+  --input-bg-focus: #2a2c35;
+  --chip-neutral-bg: #2a2c35;
+  --danger-soft-bg: #3a1d1d;
+  --footer-ink: #7a7f90;
+  --preview-line-soft: #f2f2f6;
+  /* Deeper indigo fill under white labels: white-on-#6d5ef0 ≈ 4.7:1 (AA),
+     vs. only ~3.0:1 on the lighter --brand (#818cf8). --brand itself is left
+     unchanged so brand-colored text stays vivid/AA on the dark chrome. */
+  --brand-fill: #6d5ef0;
+  /* Deeper red fill: white-on-#d23c3c ≈ 4.7:1 (AA), vs. ~2.8:1 on the lighter
+     --danger (#f87171). --danger stays untouched for danger-colored TEXT. */
+  --danger-fill: #d23c3c;
+
+  /* ── Nav shell + app frame (dark) ─────────────────────────────────── */
+  --sidebar-bg: #17181d;
+  --sidebar-border: #2c2e38;
+  --nav-ink: #aab0c0;
+  --nav-hover-bg: #23252d;
+  --nav-active-bg: #262a3d;
+  --nav-active-ink: #a5b4fc;
+  --app-bg: #15161a;
+  --panel-head-ink: #e8e8ed;
+  --scrim: rgba(0,0,0,.6);
+
+  --stat-icon-brand-bg: #262a3d;  --stat-icon-brand-ink: #a5b4fc;
+  --stat-icon-ok-bg: #10281f;     --stat-icon-ok-ink: #34d399;
+  --stat-icon-warn-bg: #2a2213;   --stat-icon-warn-ink: #fbbf24;
+  --stat-icon-danger-bg: #2a1416; --stat-icon-danger-ink: #fca5a5;
+  --stat-icon-neutral-bg: #23252d;--stat-icon-neutral-ink: #cbd0dc;
+
+  --pill-paid-bg: #10281f;    --pill-paid-ink: #34d399;
+  --pill-sent-bg: #262a3d;    --pill-sent-ink: #a5b4fc;
+  --pill-draft-bg: #2a2c35;   --pill-draft-ink: #aab0c0;
+  --pill-overdue-bg: #2a1416; --pill-overdue-ink: #fca5a5;
+  --pill-pending-bg: #2a2213; --pill-pending-ink: #fbbf24;
+  --pill-inactive-bg: #2a2c35;--pill-inactive-ink: #aab0c0;
+
+  --table-head-ink: #9aa0b0;
+  --table-row-hover: #23252d;
+  --table-border: #2c2e38;
+  --sidepanel-bg: #1c1d22;
+  --sidepanel-border: #2c2e38;
+
+  --chart-grid: #2c2e38;
+  --chart-axis-ink: #7a7f90;
+  --chart-line: #a5b4fc;
+  --chart-area-top: rgba(129,140,248,.28);
+  --chart-area-bottom: rgba(129,140,248,.02);
+  --chart-dot: #a5b4fc;
+
+  /* Estimate accent (dark) — brightened amber that stays AA on dark chrome. */
+  --est: #fbbf24;
+  --est-soft: #2a2213;
+  --est-border: #4d3d18;
+  --est-ink: #fbbf24;
+  --est-on: #1a1a2e;
+}
+
+/* Subtle theme transition on the root chrome; suppressed for reduced motion. */
+@media (prefers-reduced-motion: no-preference) {
+  body, .topbar, .panel, .invoice-row, .modal, .preview,
+  .field input, .field textarea, select,
+  .sidebar, .nav-item, .stat-tile, .data-table, .side-panel, .list-panel {
+    transition: background-color .2s ease, border-color .2s ease, color .2s ease;
+  }
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: var(--ink);
+  background: var(--bg);
+  font-size: 15px;
+  line-height: 1.5;
+}
+a { color: var(--brand); text-decoration: none; }
+button { font-family: inherit; cursor: pointer; }
+input, textarea, select { font-family: inherit; font-size: 14px; }
+.hidden { display: none !important; }
+
+/* ── App shell (sidebar + main column) ─────────────────────────────── */
+.app-shell { display: flex; min-height: 100vh; background: var(--app-bg); }
+.app-col { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.app-main { flex: 1; min-width: 0; }
+
+.sidebar {
+  position: sticky; top: 0; align-self: flex-start;
+  width: 250px; flex-shrink: 0; height: 100vh;
+  display: flex; flex-direction: column;
+  background: var(--sidebar-bg); border-right: 1px solid var(--sidebar-border);
+  padding: max(18px, env(safe-area-inset-top)) 14px max(18px, env(safe-area-inset-bottom));
+  padding-left: max(14px, env(safe-area-inset-left));
+  overflow-y: auto; z-index: 40;
+}
+.sidebar-brand { display: flex; align-items: center; gap: 11px; padding: 6px 8px 4px; cursor: pointer; border-radius: 12px; }
+.sidebar-brand svg { width: 34px; height: 34px; flex-shrink: 0; }
+.brand-logo { width: 30px; height: 30px; border-radius: 7px; flex-shrink: 0; display: block; object-fit: cover; }
+.sidebar-brand-text { display: flex; flex-direction: column; line-height: 1.15; }
+.sidebar-brand-text b { font-size: 17px; font-weight: 800; letter-spacing: -.3px; color: var(--ink); }
+.sidebar-brand-text b .wordmark-accent { color: var(--brand); }
+.sidebar-brand-sub { font-size: 11px; font-weight: 600; color: var(--muted); letter-spacing: .2px; }
+
+.sidebar-nav { display: flex; flex-direction: column; gap: 3px; margin-top: 22px; }
+.nav-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 10px 12px; border-radius: 11px; min-height: 44px;
+  font-size: 14px; font-weight: 600; color: var(--nav-ink); text-decoration: none;
+}
+.nav-item svg { width: 19px; height: 19px; flex-shrink: 0; }
+.nav-item:hover { background: var(--nav-hover-bg); color: var(--ink); }
+.nav-item.active { background: var(--nav-active-bg); color: var(--nav-active-ink); font-weight: 700; }
+.nav-item.active svg { color: var(--nav-active-ink); }
+
+.sidebar-foot { margin-top: auto; padding-top: 16px; }
+.privacy-card {
+  background: var(--brand-soft); border: 1px solid var(--brand-border);
+  border-radius: 14px; padding: 14px;
+}
+.privacy-card-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; color: var(--brand-dark); }
+.privacy-card-head svg { width: 16px; height: 16px; }
+.privacy-card-head b { font-size: 13px; font-weight: 800; }
+.privacy-card p { font-size: 11.5px; color: var(--brand-dark); opacity: .92; line-height: 1.45; }
+
+/* ── Sidebar "Unlock Pro" front door ─────────────────────────────────────────
+   A quiet, honest entry to the existing $9.99 one-time offer. Its own colors are
+   custom properties with light + [data-theme=dark] values, reusing the shipped
+   --brand ramp and --amber crown tint. */
+:root {
+  --unlock-pro-bg: var(--brand-soft);
+  --unlock-pro-border: var(--brand-border);
+  --unlock-pro-ink: var(--brand-dark);
+  --unlock-pro-crown: var(--amber-ink);
+  --unlock-pro-hover-bg: #e6ebff;
+}
+[data-theme="dark"] {
+  --unlock-pro-bg: var(--brand-soft);
+  --unlock-pro-border: var(--brand-border);
+  --unlock-pro-ink: var(--brand-dark);
+  --unlock-pro-crown: var(--amber-ink);
+  --unlock-pro-hover-bg: #2f3450;
+}
+.unlock-pro-card {
+  display: block; width: 100%; text-align: left;
+  min-height: 44px; margin-bottom: 12px; padding: 12px 14px;
+  background: var(--unlock-pro-bg); border: 1px solid var(--unlock-pro-border);
+  border-radius: 14px; cursor: pointer; font: inherit; color: var(--unlock-pro-ink);
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.unlock-pro-card:hover { background: var(--unlock-pro-hover-bg); border-color: var(--brand-light); }
+.unlock-pro-card:focus-visible { outline: 2px solid var(--brand, currentColor); outline-offset: 2px; }
+.unlock-pro-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.unlock-pro-head svg { width: 16px; height: 16px; flex-shrink: 0; color: var(--unlock-pro-crown); }
+.unlock-pro-head b { font-size: 13px; font-weight: 800; color: var(--unlock-pro-ink); }
+.unlock-pro-benefit { font-size: 11.5px; color: var(--unlock-pro-ink); opacity: .92; line-height: 1.45; margin: 0 0 6px; }
+.unlock-pro-price { display: block; font-size: 11px; font-weight: 700; letter-spacing: .2px; color: var(--unlock-pro-ink); opacity: .8; }
+
+/* Mobile nav toggle + scrim */
+.nav-toggle {
+  display: none; width: 40px; height: 40px; flex-shrink: 0;
+  align-items: center; justify-content: center;
+  background: transparent; border: 1px solid var(--line); border-radius: 10px; color: var(--muted);
+}
+.nav-toggle svg { width: 20px; height: 20px; }
+.sidebar-scrim { position: fixed; inset: 0; background: var(--scrim); z-index: 35; }
+
+/* Mobile-only "Unlock Pro" header button — surfaces the one-time offer on phones,
+   where the sidebar Pro card is behind the off-canvas nav. Hidden on desktop (the
+   sidebar card carries it there) and hidden entirely for owners (.pro-owned, toggled
+   by renderUnlockProCard() to mirror the sidebar card's owner-gating). */
+.topbar-unlock-pro {
+  display: none; align-items: center; gap: 7px; flex-shrink: 0;
+  padding: 0 13px; min-height: 40px;
+  background: linear-gradient(150deg, var(--brand-light), var(--brand));
+  color: #fff; border: none; border-radius: 10px;
+  font-weight: 800; font-size: 13px; letter-spacing: .1px; cursor: pointer; white-space: nowrap;
+  box-shadow: var(--shadow-sm);
+}
+.topbar-unlock-pro svg { width: 15px; height: 15px; flex: none; }
+.topbar-unlock-pro.pro-owned { display: none !important; }
+@media (max-width: 860px) { .topbar-unlock-pro { display: inline-flex; } }
+
+/* ── Top bar ───────────────────────────────────────────────────────── */
+.topbar {
+  position: sticky; top: 0; z-index: 20;
+  display: flex; align-items: center; justify-content: flex-end; gap: 12px;
+  padding: 14px max(28px, env(safe-area-inset-right)) 14px max(28px, env(safe-area-inset-left));
+  padding-top: max(14px, env(safe-area-inset-top));
+  background: var(--topbar-bg);
+  -webkit-backdrop-filter: saturate(180%) blur(12px); backdrop-filter: saturate(180%) blur(12px);
+  border-bottom: 1px solid var(--line);
+}
+.logo { display: flex; align-items: center; gap: 10px; cursor: pointer; }
+.logo svg { width: 30px; height: 30px; }
+.logo b { font-size: 17px; font-weight: 800; letter-spacing: -.3px; }
+/* Two-tone wordmark (Elevation v1): the second half carries the brand accent
+   while the first stays ink — a small, tasteful touch, using the --brand token. */
+.logo b .wordmark-accent { color: var(--brand); }
+.topbar-right { display: flex; align-items: center; gap: 12px; }
+
+/* Theme toggle (sun/moon) — icon-only; swaps which glyph shows by theme. */
+.theme-toggle {
+  display: flex; align-items: center; justify-content: center;
+  width: 36px; height: 36px; flex-shrink: 0;
+  background: transparent; border: 1px solid var(--line); border-radius: 10px;
+  color: var(--muted); transition: color .12s ease, border-color .12s ease, background-color .12s ease;
+}
+.theme-toggle:hover { color: var(--brand); border-color: var(--brand-border); background: var(--brand-soft); }
+.theme-toggle svg { width: 18px; height: 18px; }
+.theme-toggle .theme-icon-moon { display: none; }
+[data-theme="dark"] .theme-toggle .theme-icon-sun { display: none; }
+[data-theme="dark"] .theme-toggle .theme-icon-moon { display: block; }
+
+/* ── Hero ──────────────────────────────────────────────────────────── */
+.hero { text-align: center; padding: 52px 24px 26px; }
+.hero h1 { font-size: 40px; font-weight: 800; letter-spacing: -1px; line-height: 1.15; max-width: 720px; margin: 0 auto 14px; }
+.hero .accent { color: var(--brand); }
+.hero p { color: var(--muted); font-size: 16.5px; max-width: 540px; margin: 0 auto 14px; }
+.hero .reassure { display: inline-block; background: var(--brand-soft); color: var(--brand-dark); font-weight: 600; font-size: 13.5px; padding: 8px 16px; border-radius: 999px; margin-bottom: 22px; }
+
+.btn {
+  border: none; border-radius: 12px; padding: 11px 20px; font-weight: 700; font-size: 14.5px;
+  background: var(--brand-fill); color: #fff; box-shadow: 0 6px 18px rgba(67,56,202,.25);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: 0 10px 24px rgba(67,56,202,.3); }
+.btn:active { transform: translateY(0); }
+.btn.big { font-size: 15.5px; padding: 13px 26px; }
+.btn.ghost { background: transparent; color: var(--brand); border: 1.5px solid var(--brand-border); box-shadow: none; }
+.btn.ghost:hover { background: var(--brand-soft); }
+.btn.sm { padding: 8px 14px; font-size: 13px; }
+.btn.danger { background: var(--danger-fill); box-shadow: 0 6px 18px rgba(185,28,28,.2); }
+.btn[disabled] { opacity: .5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+/* ── Wrap / hub list ───────────────────────────────────────────────── */
+.wrap { max-width: 900px; margin: 0 auto; padding: 8px 24px 40px; }
+.section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+.section-head h2 { font-size: 18px; font-weight: 800; }
+
+.invoice-list { display: flex; flex-direction: column; gap: 10px; }
+.invoice-row {
+  display: flex; align-items: center; justify-content: space-between;
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  padding: 14px 18px; box-shadow: var(--shadow-sm); cursor: pointer;
+  transition: border-color .15s ease, box-shadow .15s ease;
+}
+.invoice-row:hover { border-color: var(--brand-border); box-shadow: var(--shadow-md); }
+.invoice-row .left { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.invoice-row .num { font-weight: 700; font-size: 14.5px; }
+.invoice-row .client { color: var(--muted); font-size: 13px; }
+.invoice-row .right { display: flex; align-items: center; gap: 14px; flex-shrink: 0; }
+.invoice-row .amount { font-weight: 800; font-size: 15px; }
+.invoice-row .status { font-size: 11.5px; font-weight: 700; padding: 4px 10px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
+.invoice-row .status.draft { background: var(--chip-neutral-bg); color: var(--muted); }
+.invoice-row .status.sent { background: var(--brand-soft); color: var(--brand-dark); }
+.invoice-row .status.paid { background: var(--ok-bg); color: var(--ok); }
+/* Comfortable, unmissable hit area (>=40px) for the row actions, with the icons
+   still visually small and centered. Extra gap so Delete (destructive) isn't
+   crowded against Duplicate — harder to hit the wrong one, especially on touch. */
+.invoice-row .row-action { color: var(--muted); background: none; border: none; padding: 0; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; min-width: 40px; min-height: 40px; cursor: pointer; }
+.invoice-row .row-action svg { width: 18px; height: 18px; }
+/* A touch more room before the destructive Delete so it's not crowded against Duplicate. */
+.invoice-row .row-action.del { margin-left: 4px; }
+.invoice-row .dup:hover { background: var(--brand-soft); color: var(--brand); }
+.invoice-row .del:hover { background: var(--danger-soft-bg); color: var(--danger); }
+/* On narrow viewports a long client name would wrap to many lines and blow out the
+   row height — clamp it to a single ellipsized line. min-width:0 on .left (above)
+   lets the flex child actually shrink so the ellipsis engages. */
+@media (max-width: 560px) {
+  .invoice-row .client { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+}
+
+/* ── Hub summary bar + search / status filter ────────────────────────────── */
+.hub-summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 18px; margin-bottom: 14px; padding: 12px 16px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.hub-summary-item { display: flex; align-items: baseline; gap: 6px; }
+.hub-summary-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.hub-summary-value { font-size: 15px; font-weight: 800; color: var(--ink); }
+.hub-summary-item.overdue .hub-summary-value, .hub-summary-item.overdue .hub-summary-label { color: var(--danger); }
+
+.hub-controls { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 14px; }
+.hub-search { flex: 1 1 220px; min-width: 180px; }
+.hub-search input { width: 100%; border: 1.5px solid var(--line); border-radius: 10px; padding: 9px 12px; font-size: 14px; color: var(--ink); background: var(--input-bg); transition: border-color .12s ease; }
+.hub-search input:focus { outline: none; border-color: var(--brand-light); background: var(--input-bg-focus); }
+.hub-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+.hub-chip { background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; color: var(--muted); cursor: pointer; transition: border-color .12s ease, color .12s ease, background-color .12s ease; }
+.hub-chip:hover { border-color: var(--brand-border); color: var(--brand); }
+.hub-chip.active { background: var(--brand-fill); border-color: var(--brand-fill); color: #fff; }
+
+/* ── Estimate kind tag (hub row) ─────────────────────────────────────── */
+.invoice-row .num-row { display: flex; align-items: center; gap: 8px; }
+.kind-tag {
+  font-size: 10px; font-weight: 800; letter-spacing: .4px; text-transform: uppercase;
+  padding: 2px 7px; border-radius: 999px; background: var(--est); color: var(--est-on);
+}
+
+/* ── Estimate visual identity (amber/gold) ──────────────────────────────
+   Everything estimate-flavoured pulls from the --est token family so an
+   estimate can never be mistaken for an indigo invoice. */
+/* Active Estimates nav item carries the estimate accent instead of indigo. */
+.nav-item.nav-estimates.active {
+  background: var(--est-soft); color: var(--est-ink);
+}
+.nav-item.nav-estimates.active svg { color: var(--est-ink); }
+
+/* Estimates list view: an amber top rail on the list panel + amber-tinted
+   table header so the whole table reads as a different colour family. */
+.estimates-view .list-panel { border-top: 3px solid var(--est); }
+.estimates-view .data-table thead th { background: var(--est-soft); color: var(--est-ink); }
+/* The per-row "Estimate" kind label becomes a solid amber badge. */
+.estimates-view .data-table .doc-kind,
+.data-table .doc-kind.is-estimate {
+  display: inline-block; background: var(--est); color: var(--est-on);
+  font-weight: 800; letter-spacing: .3px; text-transform: uppercase;
+  padding: 1px 7px; border-radius: 999px; font-size: 10.5px;
+}
+/* The document-icon well in an estimate row picks up the amber tint. */
+.estimates-view .data-table .doc-icon { background: var(--est-soft); color: var(--est-ink); }
+
+/* "Convert to invoice" quick button in an estimate row — clearly labelled. */
+.btn.est-convert {
+  background: var(--est-soft); color: var(--est-ink);
+  border: 1.5px solid var(--est-border); box-shadow: none;
+}
+.btn.est-convert:hover { background: var(--est); color: var(--est-on); border-color: var(--est); }
+
+/* New-client modal: field stack. */
+.client-form { display: flex; flex-direction: column; gap: 12px; margin-bottom: 18px; }
+.client-form .field { margin: 0; }
+
+/* ── Recurring "time to bill again" prompt banner (hub) ──────────────── */
+.recurring-prompts { display: flex; flex-direction: column; gap: 10px; margin-bottom: 14px; }
+.recurring-prompt {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  background: var(--brand-soft); border: 1px solid var(--brand-border); border-radius: 12px;
+  padding: 12px 16px; box-shadow: var(--shadow);
+}
+.recurring-prompt-msg { font-size: 13.5px; font-weight: 600; color: var(--brand-dark); }
+.recurring-prompt-period { font-weight: 700; }
+.recurring-prompt-actions { display: flex; align-items: center; gap: 8px; }
+.recurring-prompt-x {
+  background: none; border: none; color: var(--brand-dark); font-size: 20px; line-height: 1;
+  padding: 2px 8px; border-radius: 6px;
+}
+.recurring-prompt-x:hover { background: rgba(67,56,202,.12); }
+
+.empty { text-align: center; padding: 50px 20px; color: var(--muted); }
+.empty p:first-child { font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+.muted { color: var(--muted); font-size: 13.5px; }
+
+.strip {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 28px;
+  padding: 26px 24px; border-top: 1px solid var(--line); margin-top: 20px;
+  color: var(--muted); font-size: 13px;
+}
+.strip .item { display: flex; align-items: center; gap: 7px; }
+.strip svg { width: 16px; height: 16px; color: var(--ok); flex-shrink: 0; }
+
+footer { text-align: center; color: var(--footer-ink); font-size: 12.5px; padding: 30px 24px max(40px, env(safe-area-inset-bottom)); border-top: 1px solid var(--line); margin-top: 30px; }
+footer a { color: var(--muted); }
+.eden-byline { display: inline-block; margin-top: 6px; }
+
+/* ── Editor ────────────────────────────────────────────────────────── */
+.editor { max-width: 1080px; margin: 0 auto; padding: 24px; }
+.editor-head { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; flex-wrap: wrap; }
+.back { background: var(--card); border: 1px solid var(--line); border-radius: 10px; padding: 9px 16px; font-weight: 600; font-size: 13.5px; color: var(--ink); box-shadow: var(--shadow); }
+.editor-head .spacer { flex: 1; }
+.status-badge { font-size: 11.5px; font-weight: 700; padding: 5px 12px; border-radius: 999px; text-transform: uppercase; letter-spacing: .3px; }
+.status-badge.draft { background: var(--chip-neutral-bg); color: var(--muted); }
+.status-badge.sent { background: var(--brand-soft); color: var(--brand-dark); }
+.status-badge.paid { background: var(--ok-bg); color: var(--ok); }
+
+/* Invoice / Estimate segmented toggle (editor head) */
+.kind-toggle { display: inline-flex; background: var(--chip-neutral-bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; }
+.kind-toggle-btn {
+  background: transparent; border: none; border-radius: 999px; padding: 6px 14px;
+  font-size: 12.5px; font-weight: 700; color: var(--muted); transition: background-color .12s ease, color .12s ease;
+}
+.kind-toggle-btn:hover { color: var(--brand); }
+.kind-toggle-btn.active { background: var(--brand-fill); color: #fff; }
+
+/* Recurring toggle row (editor panel) */
+.recur-toggle-row { display: flex; align-items: center; gap: 10px; margin-bottom: 12px; }
+.recur-toggle-row input[type="checkbox"] { width: 17px; height: 17px; flex-shrink: 0; accent-color: var(--brand); cursor: pointer; }
+.recur-toggle-label { font-size: 14px; color: var(--ink); cursor: pointer; }
+.recur-hint { color: var(--brand-dark); font-weight: 600; }
+
+.editor-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr); gap: 24px; align-items: flex-start; }
+@media (max-width: 860px) { .editor-grid { grid-template-columns: minmax(0, 1fr); } }
+/* Grid children must be allowed to shrink below their content's intrinsic width
+   so wide tables/preview scroll inside their own container instead of forcing
+   the whole page sideways. (min-width:auto is the CSS default on grid items.) */
+.editor-grid > * { min-width: 0; }
+
+.panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); }
+.panel + .panel { margin-top: 16px; }
+.field-label { font-size: 12px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 6px; display: block; }
+.field { margin-bottom: 14px; }
+.field input, .field textarea {
+  width: 100%; border: 1.5px solid var(--line); border-radius: 9px; padding: 9px 11px;
+  color: var(--ink); background: var(--input-bg); transition: border-color .12s ease;
+}
+.field input:focus, .field textarea:focus { outline: none; border-color: var(--brand-light); background: var(--input-bg-focus); }
+.field-row { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 12px; }
+/* Inputs default to a wide intrinsic min-width; let them shrink so a 2-up
+   field row never forces the editor past a narrow phone's width. */
+.field input, .field textarea { min-width: 0; }
+.field textarea { resize: vertical; min-height: 60px; }
+/* Label row lets a small "Pro" tag sit beside a field label. */
+.field-label-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.field-label-row .field-label { margin-bottom: 0; }
+.field-hint { margin-top: 6px; font-size: 12px; color: var(--muted); }
+/* Small "Pro" pill — used beside the Payment details label + in the preview. */
+.pro-tag { display: inline-block; font-size: 10px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-dark); }
+/* Post-export upsell note (free user who typed payment instructions). */
+.payment-upsell { margin-top: 10px; padding: 10px 14px; border-radius: 10px; font-size: 13px; background: var(--brand-soft); color: var(--brand-dark); }
+.payment-upsell-link { display: inline; width: auto; margin: 0; font-weight: 700; }
+
+.panel h3 { font-size: 14.5px; font-weight: 800; margin-bottom: 14px; }
+
+.lineitems { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+.lineitem-row { display: grid; grid-template-columns: minmax(0, 1fr) 56px 84px 28px; gap: 8px; align-items: center; }
+.lineitem-row input {
+  width: 100%; min-width: 0; border: 1.5px solid var(--line); border-radius: 9px; padding: 9px 11px;
+  color: var(--ink); background: var(--input-bg); transition: border-color .12s ease;
+}
+.lineitem-row input:focus { outline: none; border-color: var(--brand-light); background: var(--input-bg-focus); }
+.lineitem-row .qty, .lineitem-row .rate { text-align: right; }
+.lineitem-row .rm { background: none; border: none; color: var(--muted); display: flex; align-items: center; justify-content: center; border-radius: 6px; padding: 4px; }
+.lineitem-row .rm:hover { background: var(--danger-soft-bg); color: var(--danger); }
+
+/* Selects (currency/status/discount/client picker) get their fill inline in JS
+   via var(--input-bg); make sure text + option colors read in dark too. */
+select { color: var(--ink); }
+select option { color: var(--ink); background: var(--card); }
+.lineitem-row .rm svg { width: 15px; height: 15px; }
+
+/* ── Live preview (looks like the exported PDF) ───────────────────── */
+/* PAPER STAYS LIGHT: the preview represents the printed PDF, so it keeps a
+   white paper surface with dark text even in dark mode. We re-pin every color
+   token it consumes back to the light palette (scoped to this subtree only),
+   so the paper matches what actually exports regardless of app theme. */
+.preview {
+  --ink: #1a1a2e;
+  --muted: #6b7280;
+  --line: #e7e8ee;
+  --brand-dark: #3730a3;
+  --brand-soft: #eef2ff; /* keep the "Pro" tag readable on the always-light paper, even in dark mode */
+  --preview-line-soft: #f2f2f6;
+  color: var(--ink);
+  background: #fff; border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow-lg); padding: 40px;
+}
+.preview-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 26px; }
+.preview-head h2 { font-size: 22px; font-weight: 800; }
+.preview-head .meta { color: var(--muted); font-size: 12.5px; margin-top: 3px; }
+.preview-head .amount { font-size: 26px; font-weight: 800; color: var(--brand-dark); }
+
+/* Estimate document = amber identity on the always-light "paper" surface.
+   Print-safe fixed hues (the preview overrides theme tokens to light values,
+   so we hard-set the amber here to match the exported PDF). A thin top rule +
+   an "ESTIMATE" ribbon make the document unmistakable. */
+.preview.is-estimate { border-top: 4px solid #b45309; }
+.preview.is-estimate .preview-head h2 { color: #b45309; }
+.preview.is-estimate .preview-head .amount { color: #b45309; }
+.est-ribbon {
+  display: inline-block; background: #b45309; color: #fff;
+  font-size: 10px; font-weight: 800; letter-spacing: .6px; text-transform: uppercase;
+  padding: 2px 9px; border-radius: 999px; margin-top: 7px;
+}
+.preview-parties { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; padding-bottom: 18px; margin-bottom: 18px; border-bottom: 1px solid var(--line); }
+.preview-parties > * { min-width: 0; }
+.preview-parties .label { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 4px; }
+/* Long emails / addresses must wrap inside their cell rather than widen the
+   preview past the viewport on a narrow phone. */
+.preview-parties .name { font-size: 13.5px; font-weight: 700; overflow-wrap: anywhere; }
+.preview-parties .sub { font-size: 12.5px; color: var(--muted); white-space: pre-line; overflow-wrap: anywhere; }
+.preview table { width: 100%; border-collapse: collapse; font-size: 13px; margin-bottom: 16px; }
+.preview thead td { font-size: 10.5px; color: var(--muted); text-transform: uppercase; letter-spacing: .3px; padding-bottom: 8px; }
+.preview tbody td { padding: 6px 0; border-top: 1px solid var(--preview-line-soft); }
+.preview td.num { text-align: right; }
+.preview td.qty { text-align: center; }
+.preview-totals { display: flex; justify-content: flex-end; }
+.preview-totals table { width: 240px; }
+.preview-totals td { padding: 4px 0; font-size: 13px; }
+.preview-totals td.num { text-align: right; }
+.preview-totals .grand td { font-weight: 800; font-size: 15px; border-top: 1px solid var(--line); padding-top: 8px; }
+/* Paid / Balance due rows (Pro partial payments). Paper stays light, so these
+   use fixed values readable on the always-white preview surface. */
+.preview-totals .paid-row td { color: var(--muted); font-size: 12.5px; }
+.preview-totals .balance-row td { font-weight: 800; font-size: 14px; color: #b45309; padding-top: 6px; }
+.preview-totals .balance-row.settled td { color: #0f766e; }
+.preview-footer { margin-top: 22px; padding-top: 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--muted); white-space: pre-line; }
+.preview-due { display: flex; justify-content: space-between; margin-top: 4px; font-size: 12.5px; color: var(--muted); }
+.preview-logo { display: block; max-width: 160px; max-height: 44px; object-fit: contain; margin-bottom: 16px; }
+/* Free users see the logo in preview with a small "Pro" tag (it only exports for Pro). */
+.preview-logo-wrap { display: flex; align-items: flex-start; gap: 8px; margin-bottom: 16px; }
+.preview-logo-wrap .preview-logo { margin-bottom: 0; }
+.preview-payment { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.preview-payment-head { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.preview-payment-head .label { font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; }
+.preview-payment-body { font-size: 12px; color: var(--ink); white-space: pre-line; }
+
+/* ── Payments & deposits (Pro) ─────────────────────────────────────── */
+.payments-summary { background: var(--input-bg); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; margin-bottom: 14px; }
+.payments-summary-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 3px 0; font-size: 13.5px; }
+.payments-summary-row .payments-summary-label { color: var(--muted); }
+.payments-summary-row .payments-summary-value { font-weight: 700; color: var(--ink); }
+.payments-summary-row.outstanding { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
+.payments-summary-row.outstanding .payments-summary-label,
+.payments-summary-row.outstanding .payments-summary-value { color: var(--pill-pending-ink); font-weight: 800; }
+.payments-summary-row.settled { border-top: 1px solid var(--line); margin-top: 4px; padding-top: 8px; }
+.payments-summary-row.settled .payments-summary-label,
+.payments-summary-row.settled .payments-summary-value { color: var(--ok); font-weight: 800; }
+.payments-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 14px; }
+.payment-row { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); }
+.payment-row-info { flex: 1; min-width: 0; }
+.payment-row-top { display: flex; align-items: center; gap: 8px; }
+.payment-row-amount { font-weight: 700; color: var(--ink); font-size: 14px; }
+.payment-badge { font-size: 10px; font-weight: 800; letter-spacing: .5px; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--pill-pending-bg); color: var(--pill-pending-ink); }
+.payment-row-meta { font-size: 12px; color: var(--muted); margin-top: 2px; overflow-wrap: anywhere; }
+.payment-rm { background: none; border: none; color: var(--muted); display: flex; align-items: center; justify-content: center; border-radius: 8px; min-width: 40px; min-height: 40px; flex-shrink: 0; }
+.payment-rm:hover { background: var(--danger-soft-bg); color: var(--danger); }
+.payment-rm svg { width: 16px; height: 16px; }
+.payments-empty { margin-top: 0; }
+.payment-add { border-top: 1px solid var(--line); padding-top: 14px; }
+.payment-deposit-row { display: flex; align-items: center; gap: 9px; margin: 10px 0 12px; }
+.payment-deposit-row input[type="checkbox"] { width: 18px; height: 18px; accent-color: var(--brand); flex-shrink: 0; }
+.payment-deposit-label { font-size: 13.5px; color: var(--ink); cursor: pointer; }
+.payment-msg { margin-top: 10px; }
+.payment-msg-line { padding: 8px 12px; border-radius: 9px; font-size: 13px; }
+.payment-msg-line.err { background: var(--err-bg); color: var(--err); }
+.payment-msg-line.ok { background: var(--ok-bg); color: var(--ok); }
+
+/* ── Logo upload (Pro) ─────────────────────────────────────────────── */
+.logo-row { display: flex; align-items: center; gap: 12px; }
+.logo-thumb { width: 44px; height: 44px; object-fit: contain; border: 1px solid var(--line); border-radius: 8px; padding: 4px; background: #fff; }
+[data-theme="dark"] .logo-thumb { background: var(--input-bg); }
+
+/* ── Pro paywall modal ────────────────────────────────────────────── */
+.modal-backdrop {
+  position: fixed; inset: 0; background: rgba(20,20,40,.45); -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px);
+  display: flex; align-items: center; justify-content: center; z-index: 100; padding: 20px;
+}
+.modal {
+  background: var(--card); border-radius: 18px; padding: 28px; max-width: 380px; width: 100%;
+  box-shadow: var(--shadow-lg);
+}
+.pro-modal h3 { font-size: 20px; font-weight: 800; margin-bottom: 8px; }
+.pro-price { margin-bottom: 16px; }
+.pro-price-amt { font-size: 28px; font-weight: 800; color: var(--brand-dark); }
+.pro-price-note { font-size: 13.5px; color: var(--muted); }
+.pro-features { padding-left: 20px; margin-bottom: 20px; color: var(--ink); font-size: 14px; }
+.pro-features li { margin-bottom: 6px; }
+.pro-actions { display: flex; gap: 10px; }
+.pro-actions .btn { flex: 1; }
+.pro-msg:empty { margin: 0; }
+.pro-modal .hint { color: var(--muted); font-size: 13.5px; margin-bottom: 16px; }
+
+/* ── Restore-by-code ──────────────────────────────────────────────── */
+.restore-code-box {
+  display: flex; align-items: center; justify-content: space-between; gap: 10px;
+  background: var(--brand-soft); border: 1.5px dashed var(--brand-border); border-radius: 10px;
+  padding: 12px 14px; margin-bottom: 18px;
+}
+.restore-code-value { font-size: 15px; font-weight: 700; letter-spacing: .3px; color: var(--brand-dark); word-break: break-all; }
+.restore-code-input {
+  width: 100%; border: 1.5px solid var(--line); border-radius: 9px; padding: 10px 12px;
+  font-size: 15px; letter-spacing: .5px; margin-bottom: 14px; text-transform: uppercase;
+  color: var(--ink); background: var(--input-bg); transition: border-color .12s ease;
+}
+.restore-code-input:focus { outline: none; border-color: var(--brand-light); background: var(--input-bg-focus); }
+.restore-link {
+  display: block; width: 100%; text-align: center; background: none; border: none;
+  color: var(--muted); font-size: 12.5px; margin-top: 12px; padding: 4px; text-decoration: underline;
+}
+.restore-link:hover { color: var(--brand-dark); }
+
+
+/* ── Pro license card ─────────────────────────────────────────────── */
+.license-modal { max-width: 560px; }
+.license-card-canvas {
+  display: block; width: 100%; max-width: 100%; height: auto;
+  border: 1px solid var(--line); border-radius: 10px; margin-bottom: 16px;
+}
+.pro-actions + .pro-actions { margin-top: 10px; }
+
+/* Save-your-card nag banner (boot-time, dismissible) */
+.license-nag {
+  display: flex; align-items: center; justify-content: center; gap: 10px; flex-wrap: wrap;
+  background: var(--brand-soft); color: var(--brand-dark);
+  border-bottom: 1px solid var(--brand-border);
+  font-size: 13px; font-weight: 600; padding: 7px 14px;
+}
+.license-nag-view {
+  background: none; border: none; color: var(--brand); font-size: 13px;
+  font-weight: 700; text-decoration: underline; padding: 2px 4px;
+}
+.license-nag-view:hover { color: var(--brand-dark); }
+.license-nag-x {
+  background: none; border: none; color: var(--brand-dark);
+  font-size: 17px; line-height: 1; padding: 2px 8px; border-radius: 6px;
+}
+.license-nag-x:hover { background: rgba(67,56,202,.1); }
+
+/* Access-stop banner slot (Pro ended via refund/expiry) — warm, non-destructive,
+   no hard re-sell. Same slim banner shape as the license/self-heal nags. */
+.accessstop-nag { background: var(--brand-soft); color: var(--brand-dark); border-bottom: 1px solid var(--brand-border); }
+
+/* Quiet, guilt-free refund entry (license-card modal + footer). Request-only. */
+.refund-entry { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); text-align: center; }
+.refund-link { display: inline-block; }
+.refund-note { margin-top: 6px; font-size: 12px; color: var(--muted); line-height: 1.5; }
+.footer-refund { margin-top: 8px; }
+.footer-refund .refund-note { max-width: 460px; margin-left: auto; margin-right: auto; }
+
+/* Self-heal banner slot (Pro on this browser, but no restore code yet) */
+.selfheal-nag { background: var(--brand-soft); color: var(--brand-dark); border-bottom: 1px solid var(--brand-border); }
+.selfheal-nag-view { background: none; border: none; color: var(--brand); font-size: 13px; font-weight: 700; text-decoration: underline; padding: 2px 4px; }
+.selfheal-nag-view:hover { color: var(--brand-dark); }
+.selfheal-nag-view:disabled { opacity: .6; cursor: default; text-decoration: none; }
+
+/* ── Pro status message tones (neutral / offline / amber / error) ──── */
+/* status() only knows "err" (red) vs anything-else (green). These override the
+   green for calmer, honest tones the purchase-return copy needs. */
+.pro-msg .status.info { background: var(--chip-neutral-bg); color: var(--muted); }
+.pro-msg .status.warn { background: var(--amber-bg); color: var(--amber-ink); }
+
+/* ── Polished genuine-purchase-failure state ──────────────────────────
+   Replaces the old plain red text line for a REAL error (not cancel/offline).
+   On-brand card with a danger mark, reassurance, support line, and a full-width
+   "Try again" that re-runs the same purchase flow. Themes via tokens. */
+.pro-error {
+  margin-top: 16px; padding: 20px 18px 18px; text-align: center;
+  background: var(--card); border: 1px solid var(--danger-soft-bg);
+  border-radius: 14px; box-shadow: var(--shadow-sm);
+}
+.pro-error-mark {
+  display: flex; align-items: center; justify-content: center;
+  width: 64px; height: 64px; margin: 0 auto 12px; border-radius: 50%;
+  background: var(--danger-soft-bg);
+  box-shadow: 0 0 0 6px var(--danger-soft-bg), 0 6px 20px rgba(185,28,28,.18);
+}
+.pro-error-mark svg { display: block; }
+.pro-error-title { font-size: 17px; font-weight: 800; color: var(--ink); margin: 0 0 8px; }
+.pro-error-body { font-size: 13.5px; line-height: 1.5; color: var(--muted); margin: 0 0 10px; }
+.pro-error-secure { font-size: 12.5px; font-weight: 600; color: var(--danger); margin: 0 0 8px; }
+.pro-error-support { font-size: 12.5px; line-height: 1.5; color: var(--muted); margin: 0 0 16px; }
+.pro-error-mail { color: var(--brand); font-weight: 700; text-decoration: underline; word-break: break-all; }
+.pro-error-mail:hover { color: var(--brand-dark); }
+.pro-error-retry { width: 100%; min-height: 44px; }
+.pro-error :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 8px; }
+.pro-error .pro-error-mail:focus-visible { outline: 2px solid var(--brand); outline-offset: 3px; }
+@media (prefers-reduced-motion: no-preference) {
+  .pro-error { animation: proErrorIn .22s ease-out both; }
+  @keyframes proErrorIn { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+}
+@media (prefers-reduced-motion: reduce) {
+  .pro-error { animation: none; }
+}
+
+/* ── Celebration / ownership moment ───────────────────────────────── */
+.celebrate-head { display: flex; flex-direction: column; align-items: flex-start; margin-bottom: 6px; }
+.celebrate-emoji { font-size: 34px; line-height: 1; margin-bottom: 6px; }
+.celebrate-title { font-size: 22px; font-weight: 800; letter-spacing: -.3px; margin-bottom: 4px; }
+.celebrate-thanks { color: var(--muted); font-size: 14px; margin-bottom: 14px; }
+.celebrate-unlocked { list-style: none; padding: 0; margin: 0 0 18px; }
+.celebrate-unlocked li { position: relative; padding-left: 26px; margin-bottom: 8px; font-size: 14px; color: var(--ink); }
+.celebrate-unlocked li::before {
+  content: ""; position: absolute; left: 2px; top: 5px; width: 12px; height: 7px;
+  border-left: 2.5px solid var(--ok); border-bottom: 2.5px solid var(--ok);
+  transform: rotate(-45deg);
+}
+
+/* Amber "couldn't mint code" note inside the celebration */
+.mint-note {
+  background: var(--amber-bg); color: var(--amber-ink); border: 1px solid var(--amber-border);
+  border-radius: 10px; padding: 12px 14px; margin-bottom: 16px; font-size: 13.5px;
+}
+.mint-note p { margin-bottom: 10px; }
+.mint-note .btn { width: 100%; }
+
+/* Confetti — pure DOM/CSS, no libs. Fixed overlay, non-interactive, auto-cleaned. */
+.confetti-layer { position: fixed; inset: 0; pointer-events: none; z-index: 300; overflow: hidden; }
+.confetti-piece {
+  position: absolute; top: -12px; width: 9px; height: 14px; border-radius: 2px; opacity: 0;
+  will-change: transform, opacity;
+  animation: confetti-fall var(--dur, 2.6s) var(--delay, 0s) ease-in forwards;
+}
+@keyframes confetti-fall {
+  0%   { opacity: 0; transform: translateY(-10px) rotate(0deg); }
+  8%   { opacity: 1; }
+  100% { opacity: .9; transform: translateY(102vh) rotate(var(--spin, 540deg)); }
+}
+/* Reduced motion: no confetti at all (the celebration text carries the moment). */
+@media (prefers-reduced-motion: reduce) {
+  .confetti-layer { display: none !important; }
+}
+
+/* ── Data vault (back up & restore row + feedback toast) ──────────── */
+.footer-tools { display: flex; align-items: center; justify-content: center; gap: 4px; margin-top: 4px; }
+.footer-tools .restore-link { display: inline-block; width: auto; margin-top: 0; }
+.vault-toast {
+  position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+  background: var(--ok-bg); color: var(--ok); border: 1px solid var(--pill-border);
+  padding: 10px 16px; border-radius: 10px; font-size: 13.5px; font-weight: 600;
+  box-shadow: var(--shadow-lg); z-index: 200; max-width: min(92vw, 480px); text-align: center;
+}
+
+/* ── Insights (income dashboard) ─────────────────────────────────────── */
+.insights { max-width: 900px; margin: 0 auto; padding: 24px; }
+.insights-head { display: flex; align-items: center; gap: 14px; margin-bottom: 18px; }
+.insights-head .spacer { flex: 1; }
+.insights-title { margin-bottom: 18px; }
+.insights-title h1 { font-size: 27px; font-weight: 800; letter-spacing: -.6px; }
+.insights-sub { color: var(--muted); font-size: 14px; margin-top: 4px; max-width: 620px; }
+.insights-hint { color: var(--muted); font-size: 13px; margin-bottom: 12px; background: var(--brand-soft); color: var(--brand-dark); padding: 10px 14px; border-radius: 10px; border: 1px solid var(--brand-border); }
+
+.insights-empty { text-align: center; padding: 56px 20px; color: var(--muted); background: var(--card); border: 1px solid var(--line); border-radius: 16px; box-shadow: var(--shadow); }
+.insights-empty p:first-child { font-weight: 700; color: var(--ink); font-size: 16px; margin-bottom: 6px; }
+
+/* Currency switcher (multi-currency books) */
+.insights-cur-switch { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+.insights-cur-chip { background: var(--card); border: 1.5px solid var(--line); border-radius: 999px; padding: 7px 14px; font-size: 13px; font-weight: 700; color: var(--muted); transition: border-color .12s ease, color .12s ease, background-color .12s ease; }
+.insights-cur-chip:hover { border-color: var(--brand-border); color: var(--brand); }
+.insights-cur-chip.active { background: var(--brand-fill); border-color: var(--brand-fill); color: #fff; }
+
+/* Headline stat cards */
+.insights-stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 20px; }
+.insight-card { background: var(--card); border: 1px solid var(--line); border-radius: 14px; padding: 16px; box-shadow: var(--shadow); }
+.insight-card-label { font-size: 11.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; margin-bottom: 8px; }
+.insight-card-value { font-size: 22px; font-weight: 800; color: var(--ink); letter-spacing: -.4px; line-height: 1.15; }
+.insight-card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+.insight-card.paid .insight-card-value { color: var(--ok); }
+.insight-card.outstanding .insight-card-value { color: var(--brand); }
+.insight-card.overdue { border-color: var(--danger); }
+.insight-card.overdue .insight-card-value, .insight-card.overdue .insight-card-sub { color: var(--danger); }
+
+/* Panels (chart + top clients) */
+.insight-panel { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 20px; box-shadow: var(--shadow); margin-bottom: 18px; }
+.insight-panel h3 { font-size: 14.5px; font-weight: 800; margin-bottom: 4px; }
+.insight-panel-sub { font-size: 12.5px; color: var(--muted); margin-bottom: 14px; }
+
+/* Monthly income chart (inline SVG) */
+.chart-wrap { width: 100%; overflow-x: auto; }
+.monthly-chart { display: block; width: 100%; min-width: 480px; height: auto; }
+.monthly-chart .chart-axis { stroke: var(--line); stroke-width: 1.5; }
+.monthly-chart .chart-bar { fill: var(--brand-light); transition: fill .12s ease; }
+.monthly-chart .chart-bar.peak { fill: var(--brand); }
+.monthly-chart .chart-bar:hover { fill: var(--brand-dark); }
+.monthly-chart .chart-label { fill: var(--muted); font-size: 11px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+
+/* Top clients by revenue */
+.top-clients { display: flex; flex-direction: column; gap: 12px; }
+.top-client-row { display: flex; align-items: flex-start; gap: 12px; }
+.top-client-rank { flex-shrink: 0; width: 24px; height: 24px; border-radius: 999px; background: var(--brand-soft); color: var(--brand-dark); font-size: 12px; font-weight: 800; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+.top-client-body { flex: 1; min-width: 0; }
+.top-client-name-row { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 5px; }
+.top-client-name { font-size: 14px; font-weight: 600; color: var(--ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.top-client-total { font-size: 14px; font-weight: 800; color: var(--ink); flex-shrink: 0; }
+.top-client-bar-track { height: 8px; background: var(--chip-neutral-bg); border-radius: 999px; overflow: hidden; }
+.top-client-bar { height: 100%; background: var(--brand); border-radius: 999px; min-width: 4px; }
+
+/* ── Keyboard focus visibility (WCAG 2.4.7) — added from experience audit ── */
+:focus-visible { outline: 2px solid var(--brand, currentColor); outline-offset: 2px; border-radius: 3px; }
+.field input:focus-visible, .field select:focus-visible, .field textarea:focus-visible, .restore-code-input:focus-visible { outline: 2px solid var(--brand, currentColor); outline-offset: 1px; }
+
+/* ── Tabular numerals (Elevation v1) ──────────────────────────────────────
+   Lock digits to equal width so columns of amounts, totals, stats, counts,
+   codes and dates line up cleanly. Applied to every element that renders
+   numbers — not to body copy — so nothing shifts except digit alignment.
+   `.tnum` is the shared utility; the selector list applies it to existing
+   number surfaces without needing markup changes. */
+.tnum,
+.invoice-row .num,
+.invoice-row .amount,
+.hub-summary-value,
+.insight-card-value,
+.top-client-total,
+.top-client-rank,
+.pro-price-amt,
+.restore-code-value,
+.restore-code-input,
+.preview-head .amount,
+.preview-head .meta,
+.preview td.num,
+.preview td.qty,
+.preview-totals td.num,
+.preview-totals .grand td,
+.preview-due {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum' 1;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   RE-SKIN v2 — routed views (dashboard / invoices / estimates / clients /
+   settings). Everything derives from EXISTING state; no new persisted data.
+   Every color is a token with a light + dark value (declared at :root and
+   [data-theme="dark"] above). No raw hex in these component rules.
+   ═════════════════════════════════════════════════════════════════════ */
+.route-view { max-width: 1180px; margin: 0 auto; padding: 24px max(20px, env(safe-area-inset-right)) 8px max(20px, env(safe-area-inset-left)); }
+
+/* Page header (title + subtitle + actions) */
+.page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 16px; flex-wrap: wrap; margin-bottom: 22px; }
+.page-head-titles h1 { font-size: 28px; font-weight: 800; letter-spacing: -.7px; color: var(--ink); }
+.page-head-titles p { color: var(--muted); font-size: 14.5px; margin-top: 4px; }
+.page-head-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+/* ── Stat tiles (dashboard + list header) ────────────────────────────── */
+.stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(206px, 1fr)); gap: 14px; margin-bottom: 22px; }
+.stat-tile {
+  display: flex; align-items: center; gap: 14px;
+  background: var(--card); border: 1px solid var(--line); border-radius: 16px;
+  padding: 16px 18px; box-shadow: var(--shadow-sm);
+}
+.stat-icon {
+  width: 46px; height: 46px; flex-shrink: 0; border-radius: 13px;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--stat-icon-brand-bg); color: var(--stat-icon-brand-ink);
+}
+.stat-icon svg { width: 22px; height: 22px; }
+.stat-icon.ok { background: var(--stat-icon-ok-bg); color: var(--stat-icon-ok-ink); }
+.stat-icon.warn { background: var(--stat-icon-warn-bg); color: var(--stat-icon-warn-ink); }
+.stat-icon.danger { background: var(--stat-icon-danger-bg); color: var(--stat-icon-danger-ink); }
+.stat-icon.neutral { background: var(--stat-icon-neutral-bg); color: var(--stat-icon-neutral-ink); }
+.stat-body { min-width: 0; }
+.stat-label { font-size: 12px; font-weight: 700; color: var(--muted); }
+.stat-value { font-size: 21px; font-weight: 800; color: var(--ink); letter-spacing: -.4px; line-height: 1.2; }
+.stat-sub { font-size: 11.5px; color: var(--muted); margin-top: 1px; }
+
+/* ── Generic panel/card used across views ────────────────────────────── */
+.list-panel { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); overflow: hidden; }
+.panel-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); padding: 20px; }
+.panel-card + .panel-card { margin-top: 18px; }
+.panel-card h3, .list-panel-head h3 { font-size: 15px; font-weight: 800; color: var(--panel-head-ink); }
+
+/* ── Dashboard layout ────────────────────────────────────────────────── */
+.dash-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr); gap: 18px; align-items: stretch; }
+@media (max-width: 900px) { .dash-grid { grid-template-columns: minmax(0, 1fr); align-items: start; } }
+.dash-grid > * { min-width: 0; }
+/* Left column fills the taller right column so the dashboard reads balanced
+   instead of leaving a dead gap under "Recent invoices". */
+.dash-grid > .list-panel { display: flex; flex-direction: column; }
+.dash-recent-head { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px 4px; }
+.dash-recent-list { padding: 6px 8px 10px; flex: 1 1 auto; }
+.dash-grid > .list-panel .dash-recent-empty { margin: auto 0; }
+.dash-recent-empty { text-align: center; padding: 34px 20px; }
+.dash-recent-empty .dash-empty-art { width: 62px; height: 62px; margin: 0 auto 10px; color: var(--brand-light); }
+.dash-recent-empty p:first-of-type { font-weight: 700; color: var(--ink); margin-bottom: 4px; }
+
+/* Income chart panel */
+.chart-panel { padding: 20px; }
+.chart-panel-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.chart-total-row { display: flex; align-items: baseline; justify-content: space-between; margin-top: 10px; padding-top: 12px; border-top: 1px solid var(--table-border); }
+.chart-total-row .lbl { font-size: 12.5px; color: var(--muted); font-weight: 600; }
+.chart-total-row .val { font-size: 17px; font-weight: 800; color: var(--ink); }
+.line-chart { display: block; width: 100%; height: auto; }
+.line-chart .lc-grid { stroke: var(--chart-grid); stroke-width: 1; }
+.line-chart .lc-axis-label { fill: var(--chart-axis-ink); font-size: 10.5px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.line-chart .lc-y-label { font-variant-numeric: tabular-nums; }
+.line-chart .lc-line { fill: none; stroke: var(--chart-line); stroke-width: 2.5; stroke-linejoin: round; stroke-linecap: round; }
+.line-chart .lc-area { stroke: none; }
+.line-chart .lc-dot { fill: var(--chart-dot); stroke: var(--card, #fff); stroke-width: 1.5; }
+/* Zero-value node markers read as hollow dots sitting on the baseline. */
+.line-chart .lc-dot-zero { fill: var(--chart-grid); stroke: var(--card, #fff); }
+/* Empty income state — faded axis + centered caption, not a broken flatline. */
+.line-chart.lc-empty .lc-grid { stroke-dasharray: 3 4; opacity: .7; }
+.line-chart.lc-empty .lc-axis-label { opacity: .65; }
+.line-chart .lc-empty-caption {
+  fill: var(--muted); font-size: 13px; font-weight: 600;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+/* Quick actions */
+.quick-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+@media (max-width: 480px) { .quick-actions { grid-template-columns: 1fr; } }
+.quick-action {
+  display: flex; align-items: center; gap: 12px; text-align: left;
+  background: var(--card); border: 1px solid var(--line); border-radius: 13px;
+  padding: 13px 14px; color: var(--ink); min-height: 44px;
+}
+.quick-action:hover { border-color: var(--brand-border); background: var(--nav-hover-bg); }
+.quick-action .qa-icon { width: 36px; height: 36px; flex-shrink: 0; border-radius: 10px; background: var(--stat-icon-brand-bg); color: var(--stat-icon-brand-ink); display: flex; align-items: center; justify-content: center; }
+.quick-action .qa-icon svg { width: 18px; height: 18px; }
+.quick-action .qa-title { font-size: 13.5px; font-weight: 700; }
+.quick-action .qa-sub { font-size: 11.5px; color: var(--muted); }
+
+/* Top-clients + payment-rate mini panels reuse .top-clients (insights) tokens */
+.dash-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-top: 18px; }
+@media (max-width: 720px) { .dash-two { grid-template-columns: minmax(0, 1fr); } }
+.dash-two { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+.dash-two > * { min-width: 0; }
+.pay-rate-big { font-size: 34px; font-weight: 800; color: var(--ok); letter-spacing: -1px; }
+.pay-rate-sub { font-size: 12.5px; color: var(--muted); margin-top: 2px; }
+.pay-rate-track { height: 10px; background: var(--chip-neutral-bg); border-radius: 999px; overflow: hidden; margin-top: 14px; }
+.pay-rate-fill { height: 100%; background: var(--ok); border-radius: 999px; min-width: 4px; }
+
+/* ── Filters bar (invoices/estimates/clients) ────────────────────────── */
+.filters-bar { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; margin-bottom: 16px; }
+.filters-search { flex: 1 1 240px; min-width: 180px; position: relative; }
+.filters-search svg { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted); pointer-events: none; }
+.filters-search input { width: 100%; border: 1.5px solid var(--line); border-radius: 11px; padding: 10px 12px 10px 36px; font-size: 14px; color: var(--ink); background: var(--input-bg); }
+.filters-search input:focus { outline: none; border-color: var(--brand-light); background: var(--input-bg-focus); }
+.filter-select { display: flex; flex-direction: column; gap: 3px; }
+.filter-select label { font-size: 10.5px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: .4px; padding-left: 2px; }
+.filter-select select { border: 1.5px solid var(--line); border-radius: 11px; padding: 8px 11px; background: var(--input-bg); color: var(--ink); font-size: 13.5px; font-weight: 600; min-height: 40px; }
+.filter-select select:focus { outline: none; border-color: var(--brand-light); }
+
+/* ── Data table ──────────────────────────────────────────────────────── */
+.table-scroll { width: 100%; overflow-x: auto; }
+.data-table { width: 100%; border-collapse: collapse; min-width: 720px; }
+.data-table thead th {
+  text-align: left; font-size: 11px; font-weight: 700; color: var(--table-head-ink);
+  text-transform: uppercase; letter-spacing: .4px; padding: 14px 16px; border-bottom: 1px solid var(--table-border);
+  white-space: nowrap;
+}
+.data-table th.num, .data-table td.num { text-align: right; }
+.data-table tbody tr { border-bottom: 1px solid var(--table-border); cursor: pointer; }
+.data-table tbody tr:last-child { border-bottom: none; }
+.data-table tbody tr:hover { background: var(--table-row-hover); }
+.data-table tbody td { padding: 13px 16px; font-size: 13.5px; color: var(--ink); vertical-align: middle; }
+.data-table .cell-doc { display: flex; align-items: center; gap: 11px; }
+.data-table .doc-icon { width: 34px; height: 34px; flex-shrink: 0; border-radius: 9px; display: flex; align-items: center; justify-content: center; background: var(--stat-icon-neutral-bg); color: var(--stat-icon-neutral-ink); }
+.data-table .doc-icon svg { width: 17px; height: 17px; }
+.data-table .doc-icon.paid { background: var(--stat-icon-ok-bg); color: var(--stat-icon-ok-ink); }
+.data-table .doc-icon.sent { background: var(--stat-icon-warn-bg); color: var(--stat-icon-warn-ink); }
+.data-table .doc-icon.overdue { background: var(--stat-icon-danger-bg); color: var(--stat-icon-danger-ink); }
+.data-table .doc-icon.partial { background: var(--pill-pending-bg); color: var(--pill-pending-ink); }
+.data-table .doc-num { font-weight: 700; font-size: 13.5px; color: var(--ink); }
+.data-table .doc-kind { font-size: 11.5px; color: var(--muted); }
+.data-table .cell-client-name { font-weight: 600; color: var(--ink); }
+.data-table .cell-client-sub { font-size: 12px; color: var(--muted); }
+.data-table .cell-amount { font-weight: 800; color: var(--ink); }
+.data-table .cell-amount .cell-amount-balance { font-weight: 700; font-size: 11.5px; color: var(--pill-pending-ink); margin-top: 2px; }
+.data-table .cell-muted { color: var(--muted); }
+.data-table td.actions-cell { text-align: right; white-space: nowrap; }
+.data-table td.actions-cell { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.data-table td.actions-cell .est-convert { min-height: 40px; }
+.row-menu-btn { background: none; border: 1px solid transparent; border-radius: 8px; color: var(--muted); min-width: 40px; min-height: 40px; display: inline-flex; align-items: center; justify-content: center; }
+.row-menu-btn svg { width: 16px; height: 16px; }
+.row-menu-btn:hover { background: var(--nav-hover-bg); color: var(--brand); }
+.row-menu-btn.danger:hover { background: var(--danger-soft-bg); color: var(--danger); }
+
+/* ── Status pills (never color-alone: dot + text) ────────────────────── */
+.pill { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; font-weight: 700; padding: 4px 11px; border-radius: 999px; text-transform: capitalize; letter-spacing: .1px; white-space: nowrap; }
+.pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; flex-shrink: 0; }
+.pill.paid { background: var(--pill-paid-bg); color: var(--pill-paid-ink); }
+.pill.sent { background: var(--pill-sent-bg); color: var(--pill-sent-ink); }
+.pill.draft { background: var(--pill-draft-bg); color: var(--pill-draft-ink); }
+.pill.overdue { background: var(--pill-overdue-bg); color: var(--pill-overdue-ink); }
+.pill.pending { background: var(--pill-pending-bg); color: var(--pill-pending-ink); }
+.pill.inactive { background: var(--pill-inactive-bg); color: var(--pill-inactive-ink); }
+.pill.active { background: var(--pill-paid-bg); color: var(--pill-paid-ink); }
+/* Partially paid — reuses the amber "pending" tokens (light + dark aware). */
+.pill.partial { background: var(--pill-pending-bg); color: var(--pill-pending-ink); }
+
+/* ── Pagination ──────────────────────────────────────────────────────── */
+.table-foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 14px 16px; border-top: 1px solid var(--table-border); }
+.table-foot-info { font-size: 12.5px; color: var(--muted); }
+.pager { display: flex; align-items: center; gap: 6px; }
+.pager button { min-width: 36px; min-height: 36px; border: 1.5px solid var(--line); background: var(--card); color: var(--ink); border-radius: 9px; font-size: 13px; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+.pager button:hover:not(:disabled) { border-color: var(--brand-border); color: var(--brand); }
+.pager button.active { background: var(--brand-fill); border-color: var(--brand-fill); color: #fff; }
+.pager button:disabled { opacity: .4; cursor: not-allowed; }
+.pager button svg { width: 15px; height: 15px; }
+
+/* Empty state inside a list panel */
+.list-empty { text-align: center; padding: 54px 24px; color: var(--muted); }
+.list-empty .list-empty-art { width: 56px; height: 56px; margin: 0 auto 12px; color: var(--brand-light); }
+.list-empty p:first-of-type { font-weight: 700; color: var(--ink); font-size: 15.5px; margin-bottom: 4px; }
+
+/* ── Clients: list + detail side panel ───────────────────────────────── */
+.clients-layout { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 18px; align-items: start; }
+@media (max-width: 1040px) { .clients-layout { grid-template-columns: minmax(0, 1fr); } }
+.clients-layout > * { min-width: 0; }
+.client-avatar { width: 34px; height: 34px; flex-shrink: 0; border-radius: 10px; background: var(--stat-icon-brand-bg); color: var(--stat-icon-brand-ink); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; }
+.side-panel { background: var(--sidepanel-bg); border: 1px solid var(--sidepanel-border); border-radius: 18px; box-shadow: var(--shadow-sm); padding: 20px; position: sticky; top: 84px; }
+.side-panel-head { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+.side-panel-head .client-avatar { width: 44px; height: 44px; border-radius: 12px; font-size: 15px; }
+.side-panel-head .sp-name { font-size: 16px; font-weight: 800; color: var(--ink); }
+.side-panel-head .sp-sub { font-size: 12.5px; color: var(--muted); }
+.side-panel section { padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--table-border); }
+.side-panel section:first-of-type { border-top: none; margin-top: 0; padding-top: 0; }
+.sp-section-title { font-size: 11px; font-weight: 800; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 10px; }
+.sp-row { display: flex; align-items: center; gap: 9px; font-size: 13px; color: var(--ink); margin-bottom: 8px; }
+.sp-row svg { width: 15px; height: 15px; color: var(--muted); flex-shrink: 0; }
+.sp-address { font-size: 13px; color: var(--ink); white-space: pre-line; line-height: 1.5; }
+.sp-stat-row { display: flex; align-items: baseline; justify-content: space-between; font-size: 13px; margin-bottom: 8px; }
+.sp-stat-row .lbl { color: var(--muted); }
+.sp-stat-row .val { font-weight: 800; color: var(--ink); }
+.sp-recent-row { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 7px 0; cursor: pointer; border-radius: 8px; }
+.sp-recent-row:hover { background: var(--nav-hover-bg); }
+.sp-recent-row .num { font-weight: 700; font-size: 12.5px; }
+.sp-recent-row .amt { font-weight: 800; font-size: 12.5px; }
+.side-panel .btn { width: 100%; margin-top: 16px; }
+.side-panel-empty { text-align: center; color: var(--muted); padding: 40px 16px; }
+.side-panel-empty svg { width: 44px; height: 44px; color: var(--brand-light); margin-bottom: 10px; }
+
+/* ── Settings ────────────────────────────────────────────────────────── */
+.settings-grid { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 18px; align-items: start; }
+@media (max-width: 900px) { .settings-grid { grid-template-columns: minmax(0, 1fr); } }
+.settings-grid > * { min-width: 0; }
+.settings-card { background: var(--card); border: 1px solid var(--line); border-radius: 18px; box-shadow: var(--shadow-sm); padding: 22px; }
+.settings-card + .settings-card { margin-top: 18px; }
+.settings-card h3 { font-size: 16px; font-weight: 800; color: var(--ink); margin-bottom: 3px; }
+.settings-card .settings-card-sub { font-size: 13px; color: var(--muted); margin-bottom: 16px; }
+.settings-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+@media (max-width: 560px) { .settings-row { grid-template-columns: 1fr; } }
+.theme-seg { display: inline-flex; background: var(--chip-neutral-bg); border: 1px solid var(--line); border-radius: 999px; padding: 3px; gap: 2px; }
+.theme-seg button { background: transparent; border: none; border-radius: 999px; padding: 7px 16px; font-size: 13px; font-weight: 700; color: var(--muted); min-height: 40px; }
+.theme-seg button:hover { color: var(--brand); }
+.theme-seg button.active { background: var(--brand-fill); color: #fff; }
+.settings-vault-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+
+/* ── A11y: focus rings on new interactive surfaces ───────────────────── */
+.nav-item:focus-visible,
+.quick-action:focus-visible,
+.data-table tbody tr:focus-visible,
+.sp-recent-row:focus-visible,
+.row-menu-btn:focus-visible,
+.pager button:focus-visible,
+.theme-seg button:focus-visible,
+.filter-select select:focus-visible,
+.filters-search input:focus-visible,
+.sidebar-brand:focus-visible,
+.nav-toggle:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 8px;
+}
+
+/* Tabular numerals for new number surfaces */
+.stat-value, .cell-amount, .pay-rate-big, .chart-total-row .val,
+.sp-stat-row .val, .sp-recent-row .amt, .table-foot-info {
+  font-variant-numeric: tabular-nums; font-feature-settings: 'tnum' 1;
+}
+
+/* ── Responsive: collapse sidebar to an off-canvas drawer ────────────── */
+@media (max-width: 860px) {
+  .sidebar {
+    position: fixed; top: 0; left: 0; height: 100vh; transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open { transform: translateX(0); }
+  .nav-toggle { display: inline-flex; }
+  .topbar { justify-content: space-between; }
+  .app-shell { display: block; }
+}
+@media (min-width: 861px) { .sidebar-scrim { display: none !important; } }
+@media (max-width: 560px) {
+  .route-view { padding-top: 16px; }
+  .page-head-titles h1 { font-size: 23px; }
+}
+/* Touch targets: the topbar icon buttons must be at least ~44px on phones.
+   (Desktop keeps its more compact 36/40px sizing.) */
+@media (max-width: 860px) {
+  .nav-toggle, .theme-toggle { width: 44px; height: 44px; }
+}
+
+/* Reduced motion: no shell/drawer transitions */
+@media (prefers-reduced-motion: reduce) {
+  .sidebar, .nav-item, .stat-tile, .data-table, .side-panel, .list-panel { transition: none !important; }
+}
+
+/* ── Row action menu (popover) + selected client row ─────────────────── */
+.row-menu {
+  background: var(--card); border: 1px solid var(--line); border-radius: 12px;
+  box-shadow: var(--shadow-lg); padding: 6px; min-width: 170px; z-index: 150;
+  display: flex; flex-direction: column; gap: 2px;
+}
+.row-menu-item {
+  text-align: left; background: none; border: none; border-radius: 8px;
+  padding: 9px 12px; font-size: 13.5px; font-weight: 600; color: var(--ink); min-height: 40px;
+}
+.row-menu-item:hover { background: var(--nav-hover-bg); }
+.row-menu-item.danger { color: var(--danger); }
+.row-menu-item.danger:hover { background: var(--danger-soft-bg); }
+.row-menu-item:focus-visible { outline: 2px solid var(--brand); outline-offset: -2px; }
+.data-table tbody tr.selected { background: var(--nav-active-bg); }
+.data-table tbody tr.selected:hover { background: var(--nav-active-bg); }
+
+/* Topbar "New invoice" — hide on small screens (page headers carry their own). */
+@media (max-width: 560px) { .topbar-new { display: none; } }
+
+/* ═══════════════════════════════════════════════════════════════════════
+   ELEVATION v2 — family polish
+   A cohesive depth + warmth pass matching the sibling apps (Snowball et al.).
+   Purely additive: every rule below reuses EXISTING classes/ids and EXISTING
+   tokens (or adds new tokens with light + dark values). No JS selector is
+   renamed or removed; no logic, copy, or price string is touched. All colour
+   stays on the shipped indigo/violet --brand ramp.
+   ═════════════════════════════════════════════════════════════════════ */
+:root {
+  /* Soft brand-tinted hero wash + page background rhythm (light). */
+  --hero-wash-a: rgba(67,56,202,.07);
+  --hero-wash-b: rgba(129,140,248,.05);
+  --app-bg-tint-a: rgba(67,56,202,.035);
+  --app-bg-tint-b: rgba(99,102,241,.02);
+  /* Gradient fills for stat-tile icon chips (start → end), per tone. */
+  --chip-brand-a: #eef2ff;  --chip-brand-b: #e0e7ff;
+  --chip-ok-a: #ecfdf5;     --chip-ok-b: #d1fae5;
+  --chip-warn-a: #fff7ed;   --chip-warn-b: #ffedd5;
+  --chip-danger-a: #fef2f2; --chip-danger-b: #fee2e2;
+  --chip-neutral-a: #eef2f7;--chip-neutral-b: #e2e8f0;
+}
+[data-theme="dark"] {
+  --hero-wash-a: rgba(129,140,248,.14);
+  --hero-wash-b: rgba(99,102,241,.06);
+  --app-bg-tint-a: rgba(129,140,248,.05);
+  --app-bg-tint-b: rgba(99,102,241,.03);
+  --chip-brand-a: #2b2f45;  --chip-brand-b: #23263a;
+  --chip-ok-a: #10281f;     --chip-ok-b: #0c1f18;
+  --chip-warn-a: #2a2213;   --chip-warn-b: #221b0f;
+  --chip-danger-a: #2a1416; --chip-danger-b: #1f1011;
+  --chip-neutral-a: #262932;--chip-neutral-b: #1f222b;
+}
+
+/* ── Background rhythm ─────────────────────────────────────────────────
+   A very subtle top-anchored brand glow so the app frame reads warm and
+   layered rather than flat gray. Fixed so it doesn't scroll away. */
+.app-main {
+  background:
+    radial-gradient(120% 62% at 80% -8%, var(--app-bg-tint-a), transparent 60%),
+    radial-gradient(90% 50% at 0% 0%, var(--app-bg-tint-b), transparent 55%);
+  background-attachment: fixed;
+}
+
+/* ── Hero / page header wash ───────────────────────────────────────────
+   A soft brand-tinted gradient panel behind the page title area. Applied via
+   a ::before layer on .page-head so the existing flex markup is untouched. */
+.page-head { position: relative; padding: 22px 22px 20px; border-radius: 20px; margin-bottom: 24px; overflow: hidden; }
+.page-head::before {
+  content: ""; position: absolute; inset: 0; z-index: 0;
+  background:
+    linear-gradient(135deg, var(--hero-wash-a), transparent 62%),
+    radial-gradient(80% 120% at 100% 0%, var(--hero-wash-b), transparent 60%);
+  border: 1px solid var(--brand-border);
+  border-radius: 20px; pointer-events: none;
+}
+.page-head > * { position: relative; z-index: 1; }
+.page-head-titles h1 { line-height: 1.12; }
+/* Drop the redundant top-bar "New invoice" on pages whose hero already carries
+   the same primary action, so the two don't stack near each other. */
+:root[data-route="dashboard"] .topbar-new,
+:root[data-route="invoices"] .topbar-new,
+:root[data-route="estimates"] .topbar-new { display: none; }
+@media (max-width: 560px) { .page-head { padding: 16px 16px 16px; margin-bottom: 18px; } }
+
+/* ── Stat tiles — richer icon chips + hover lift ───────────────────────
+   Gradient-filled rounded-square wells with a soft inner highlight; the whole
+   tile lifts on hover. Values already carry tabular-nums (above). */
+.stat-tile {
+  box-shadow: var(--shadow-md);
+  transition: transform .16s ease, box-shadow .16s ease, border-color .16s ease;
+}
+.stat-icon {
+  background-image: linear-gradient(150deg, var(--chip-brand-a), var(--chip-brand-b));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5), 0 1px 2px rgba(16,24,40,.06);
+}
+[data-theme="dark"] .stat-icon { box-shadow: inset 0 1px 0 rgba(255,255,255,.05), 0 1px 2px rgba(0,0,0,.3); }
+/* Dark tiles read as raised cards, not painted-on regions: nudge the surface
+   one step lighter than the canvas and add a subtle top highlight. */
+[data-theme="dark"] .stat-tile {
+  background-image: linear-gradient(180deg, rgba(255,255,255,.035), transparent 60%);
+  border-color: #34363f;
+}
+.stat-icon.ok { background-image: linear-gradient(150deg, var(--chip-ok-a), var(--chip-ok-b)); }
+.stat-icon.warn { background-image: linear-gradient(150deg, var(--chip-warn-a), var(--chip-warn-b)); }
+.stat-icon.danger { background-image: linear-gradient(150deg, var(--chip-danger-a), var(--chip-danger-b)); }
+.stat-icon.neutral { background-image: linear-gradient(150deg, var(--chip-neutral-a), var(--chip-neutral-b)); }
+.stat-label { text-transform: uppercase; letter-spacing: .5px; font-size: 11px; }
+.stat-value { font-size: 22px; }
+@media (prefers-reduced-motion: no-preference) {
+  .stat-tile:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); border-color: var(--brand-border); }
+}
+
+/* ── Floating cards / panels ───────────────────────────────────────────
+   Give the routed surfaces real, tasteful depth using the shadow ladder and
+   a slightly generous radius, so they float on the tinted background instead
+   of reading as 1px-outlined boxes. */
+.list-panel, .panel-card, .settings-card, .side-panel { box-shadow: var(--shadow-md); }
+.insight-card, .insight-panel, .hub-summary { box-shadow: var(--shadow-md); }
+.list-panel { transition: box-shadow .18s ease; }
+@media (prefers-reduced-motion: no-preference) {
+  .panel-card, .settings-card { transition: box-shadow .18s ease, transform .18s ease; }
+}
+
+/* ── Quick actions — tasteful hover lift + gradient icon well ──────────── */
+.quick-action {
+  box-shadow: var(--shadow-sm);
+  transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease, background-color .15s ease;
+}
+.quick-action .qa-icon {
+  background-image: linear-gradient(150deg, var(--chip-brand-a), var(--chip-brand-b));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.5);
+}
+[data-theme="dark"] .quick-action .qa-icon { box-shadow: inset 0 1px 0 rgba(255,255,255,.05); }
+@media (prefers-reduced-motion: no-preference) {
+  .quick-action:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+}
+
+/* ── Data-table rows — hover lift cue + selected treatment ──────────────
+   Rows get a soft brand rail on hover; the selected row gets a clear left
+   brand rail + a soft tint, applied identically across the Clients and
+   Invoices tables so "selected" reads the same everywhere. The rail + tint
+   alone carry the affordance — no overlapping badge to read as a glitch. */
+.data-table tbody tr { transition: background-color .12s ease, box-shadow .12s ease; }
+.data-table tbody tr td:first-child { box-shadow: inset 3px 0 0 transparent; transition: box-shadow .12s ease; }
+.data-table tbody tr:hover td:first-child { box-shadow: inset 3px 0 0 var(--brand-light); }
+.data-table tbody tr.selected td:first-child { box-shadow: inset 3px 0 0 var(--brand); }
+
+/* Gradient icon wells for the table document/avatar chips (subtle depth). */
+.data-table .doc-icon { box-shadow: inset 0 1px 0 rgba(255,255,255,.4); }
+.client-avatar {
+  background-image: linear-gradient(150deg, var(--chip-brand-a), var(--chip-brand-b));
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.4);
+}
+[data-theme="dark"] .data-table .doc-icon,
+[data-theme="dark"] .client-avatar { box-shadow: inset 0 1px 0 rgba(255,255,255,.04); }
+
+/* ── Empty states — warm illustration + primary CTA ─────────────────────
+   A friendly gradient-haloed illustration, warm copy, and a brand-filled
+   primary action so the highest-intent zero-state invites the first invoice.
+   Vertically balanced so the block sits centered, not top-heavy. */
+.list-empty, .dash-recent-empty {
+  position: relative; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.list-empty { min-height: 340px; }
+.list-empty .list-empty-art, .dash-recent-empty .dash-empty-art {
+  position: relative; padding: 14px; border-radius: 18px;
+  background: radial-gradient(circle at 50% 40%, var(--brand-soft), transparent 72%);
+  box-sizing: content-box;
+}
+.list-empty p, .dash-recent-empty p { max-width: 420px; }
+.list-empty-cta { margin-top: 18px; }
+
+/* ── Sidebar polish — filled Pro glyph, refined active nav ──────────────
+   The Unlock-Pro card gets a soft gradient fill + a small filled brand glyph
+   feel and a gentle hover lift; the active nav item gets a left brand rail. */
+.unlock-pro-card {
+  background-image: linear-gradient(150deg, var(--chip-brand-a), var(--chip-brand-b));
+  box-shadow: var(--shadow-sm);
+  transition: background .15s ease, border-color .15s ease, box-shadow .15s ease, transform .15s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .unlock-pro-card:hover { transform: translateY(-2px); box-shadow: var(--shadow-md); }
+}
+.unlock-pro-head svg { filter: drop-shadow(0 1px 1px rgba(146,96,10,.25)); }
+.nav-item { position: relative; }
+.nav-item.active::before {
+  content: ""; position: absolute; left: 3px; top: 50%; transform: translateY(-50%);
+  width: 3px; height: 20px; border-radius: 999px; background: var(--brand);
+}
+.nav-item.nav-estimates.active::before { background: var(--est); }
+.privacy-card { box-shadow: var(--shadow-sm); }
+
+/* ── Sidebar reads as a distinct panel, not a flat white column ─────────
+   A whisper of indigo-gray tint + a soft right-edge shadow gives the nav
+   the same depth language as the floating cards. */
+.sidebar {
+  background-image: linear-gradient(180deg, var(--app-bg-tint-a), transparent 40%);
+  box-shadow: 1px 0 0 var(--sidebar-divider, var(--sidebar-border)), 6px 0 18px -8px rgba(67,56,202,.16);
+}
+[data-theme="dark"] .sidebar {
+  box-shadow: 1px 0 0 var(--sidebar-border), 4px 0 18px -10px rgba(0,0,0,.5);
+}
+
+/* ── Chart panel — soft depth under the income line ────────────────────── */
+.chart-panel { box-shadow: var(--shadow-md); }
+
+/* ── Recent invoices rows on dashboard read as tappable ────────────────── */
+.dash-recent-list .data-table tbody tr:hover { background: var(--table-row-hover); }
+
+/* ── Reduced motion: strip the v2 lifts + pulses ───────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  .stat-tile, .quick-action, .unlock-pro-card, .panel-card, .settings-card { transition: none !important; }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════
+   Mockup-personality harvest — greeting, sparklines, gradient Pro card,
+   invoice-status donut, illustrated empty states, private-card motif.
+   All on-device (inline SVG + CSS), both themes, on the --brand ramp.
+   ═══════════════════════════════════════════════════════════════════════ */
+:root {
+  --spark-indigo: #6366f1;
+  --spark-green:  #10b981;
+  --spark-amber:  #f59e0b;
+  --seg-draft:   #94a3b8;
+  --seg-sent:    #6366f1;
+  --seg-paid:    #10b981;
+  --seg-overdue: #ef4444;
+  --donut-track: #eef0f6;
+  --donut-num:   #1a1a2e;
+  --donut-sub:   #9ca3af;
+  /* Firmer, cooler sidebar divider so the nav reads as a distinct panel. */
+  --sidebar-divider: #dfe1ea;
+  /* Gradient Unlock-Pro card (sidebar) — rich indigo→violet with white text. */
+  --pro-grad-a: #4f46e5;
+  --pro-grad-b: #7c3aed;
+  --pro-glow:   rgba(79,70,229,.35);
+  /* Empty-state illustration tints. */
+  --ea-doc-fill:   var(--brand-soft);
+  --ea-doc-stroke: var(--brand-light);
+  --ea-doc-line:   var(--brand-border);
+  --ea-spark:      var(--brand-light);
+}
+[data-theme="dark"] {
+  --spark-indigo: #93a0ff;
+  --spark-green:  #4ade80;
+  --spark-amber:  #fcbf49;
+  /* Draft lightened so the gray segment stays distinct against the dark card. */
+  --seg-draft:   #94a3b8;
+  --seg-sent:    #818cf8;
+  --seg-paid:    #34d399;
+  --seg-overdue: #f87171;
+  --donut-track: #23252d;
+  --donut-num:   #eef0f6;
+  --donut-sub:   #8b91a1;
+  --sidebar-divider: #2c2e38;
+  --pro-grad-a: #5b52e0;
+  --pro-grad-b: #7c50d8;
+  --pro-glow:   rgba(0,0,0,.45);
+  --ea-doc-fill:   #262a3d;
+  --ea-doc-stroke: #4b527a;
+  --ea-doc-line:   #3a4066;
+  --ea-spark:      #6b73a8;
+}
+
+/* ── Greeting hero ─────────────────────────────────────────────────────── */
+.page-head.dash-greeting h1 { letter-spacing: -.6px; }
+
+/* ── Stat-card sparklines ──────────────────────────────────────────────── */
+/* The tile becomes a 3-column flex: icon · body · sparkline. The body grows so
+   the sparkline hugs the right edge like the mockup. */
+.stat-tile { gap: 12px; }
+.stat-tile .stat-body { flex: 1 1 auto; }
+.stat-spark { flex: 0 0 auto; width: 96px; height: 34px; align-self: center; }
+.sparkline { display: block; width: 96px; height: 34px; overflow: visible; }
+.sparkline .spk-line { fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.sparkline .spk-dot  { fill: currentColor; }
+.sparkline.spark-indigo { color: var(--spark-indigo); }
+.sparkline.spark-green  { color: var(--spark-green); }
+.sparkline.spark-amber  { color: var(--spark-amber); }
+@media (max-width: 560px) { .stat-spark { display: none; } }
+
+/* Sparkline sits BELOW the value (same column as the number, under it) so it can
+   never overlap the amount on a narrow card — e.g. the iPad dashboard's 3-up stat
+   row, where the value would otherwise run under the trend line. */
+.stat-tile {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: "icon body" "icon spark";
+  align-items: center; column-gap: 14px; row-gap: 3px;
+}
+.stat-tile > .stat-icon { grid-area: icon; align-self: center; }
+.stat-tile > .stat-body { grid-area: body; }
+.stat-tile > .stat-spark { grid-area: spark; width: 100%; height: 26px; }
+.stat-tile > .stat-spark .sparkline { width: 100%; height: 26px; }
+
+/* ── Gradient Unlock-Pro card (sidebar) ────────────────────────────────── */
+.unlock-pro-card {
+  background: linear-gradient(150deg, var(--pro-grad-a), var(--pro-grad-b));
+  background-image: linear-gradient(150deg, var(--pro-grad-a), var(--pro-grad-b));
+  border: none;
+  color: #fff;
+  box-shadow: 0 6px 18px -6px var(--pro-glow), var(--shadow-sm);
+  padding: 14px 16px 16px;
+}
+.unlock-pro-card:hover {
+  background: linear-gradient(150deg, var(--pro-grad-a), var(--pro-grad-b));
+  border: none;
+  filter: brightness(1.05);
+}
+.unlock-pro-card .unlock-pro-head b,
+.unlock-pro-card .unlock-pro-benefit,
+.unlock-pro-card .unlock-pro-price { color: #fff; }
+.unlock-pro-card .unlock-pro-benefit { opacity: .95; }
+.unlock-pro-card .unlock-pro-price {
+  display: inline-block; margin-top: 4px; padding: 3px 9px; border-radius: 999px;
+  background: rgba(255,255,255,.18); color: #fff; opacity: 1;
+  font-weight: 700; letter-spacing: .2px;
+}
+/* Prominent white CTA beneath the price pill (mockup's "Upgrade now" slot, but
+   honest one-time copy: "Unlock Pro"). A styled span — the card is the button. */
+.unlock-pro-card .unlock-pro-cta {
+  display: block; margin-top: 12px; text-align: center;
+  padding: 9px 12px; border-radius: 10px;
+  background: #fff; color: var(--pro-grad-a) !important;
+  font-size: 13px; font-weight: 800; letter-spacing: .1px;
+  box-shadow: 0 2px 8px -3px rgba(0,0,0,.35);
+  transition: transform .15s ease, box-shadow .15s ease;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .unlock-pro-card:hover .unlock-pro-cta { transform: translateY(-1px); box-shadow: 0 4px 12px -3px rgba(0,0,0,.4); }
+}
+/* White brand glyph in a soft translucent chip (replaces the amber crown tint). */
+.unlock-pro-card .unlock-pro-head {
+  align-items: center; gap: 9px; margin-bottom: 8px;
+}
+.unlock-pro-card .unlock-pro-head svg {
+  width: 24px; height: 24px; padding: 4px; box-sizing: border-box;
+  border-radius: 8px; background: rgba(255,255,255,.2);
+  color: #fff; filter: none;
+}
+.unlock-pro-card:focus-visible { outline: 2px solid #fff; outline-offset: 2px; }
+@media (prefers-reduced-motion: no-preference) {
+  .unlock-pro-card:hover { transform: translateY(-2px); box-shadow: 0 10px 24px -6px var(--pro-glow), var(--shadow-md); }
+}
+
+/* ── Invoice-status card (donut + legend) ──────────────────────────────── */
+.status-card-body { display: flex; align-items: center; gap: 22px; margin-top: 14px; flex-wrap: wrap; }
+.status-donut { width: 132px; height: 132px; flex: 0 0 auto; }
+.status-donut-track { stroke: var(--donut-track); }
+.status-donut .status-seg { stroke-linecap: round; }
+.status-donut-num { fill: var(--donut-num); font-size: 26px; font-weight: 800; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.status-donut-sub { fill: var(--donut-sub); font-size: 10px; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+.seg-draft   { stroke: var(--seg-draft); }
+.seg-sent    { stroke: var(--seg-sent); }
+.seg-paid    { stroke: var(--seg-paid); }
+.seg-overdue { stroke: var(--seg-overdue); }
+.status-legend { flex: 1 1 180px; display: flex; flex-direction: column; gap: 10px; min-width: 160px; }
+.status-legend-row { display: flex; align-items: center; gap: 10px; }
+.status-dot { width: 11px; height: 11px; border-radius: 3px; flex: 0 0 auto; }
+.status-dot.seg-draft   { background: var(--seg-draft); }
+.status-dot.seg-sent    { background: var(--seg-sent); }
+.status-dot.seg-paid    { background: var(--seg-paid); }
+.status-dot.seg-overdue { background: var(--seg-overdue); }
+.status-legend-label { font-size: 13px; font-weight: 600; color: var(--ink); flex: 1 1 auto; }
+.status-legend-count { font-size: 13px; font-weight: 700; color: var(--muted); font-variant-numeric: tabular-nums; }
+.status-card { margin-top: 18px; }
+
+/* ── Illustrated empty states (dashboard) ──────────────────────────────── */
+.empty-art-svg { width: 62px; height: 62px; display: block; }
+.ea-doc-fill   { fill: var(--ea-doc-fill); }
+.ea-doc-stroke { fill: none; stroke: var(--ea-doc-stroke); stroke-width: 2.4; stroke-linecap: round; stroke-linejoin: round; }
+.ea-doc-line   { fill: none; stroke: var(--ea-doc-line); stroke-width: 2.4; stroke-linecap: round; }
+.ea-spark      { fill: var(--ea-spark); }
+.dash-recent-empty .empty-art-svg.dash-empty-art,
+.dash-mini-empty .empty-art-svg.dash-empty-art { width: 62px; height: 62px; }
+.dash-mini-empty {
+  text-align: center; padding: 22px 12px;
+  display: flex; flex-direction: column; align-items: center;
+}
+.dash-mini-empty .dash-empty-art {
+  padding: 12px; border-radius: 16px; margin-bottom: 8px;
+  background: radial-gradient(circle at 50% 40%, var(--brand-soft), transparent 72%);
+  box-sizing: content-box;
+}
+.dash-mini-empty p:first-of-type { font-weight: 700; color: var(--ink); margin-bottom: 3px; }
+.dash-mini-empty p { max-width: 320px; font-size: 12.5px; }
+
+/* ── 100% Private card — subtle shield/padlock watermark ───────────────── */
+.privacy-card { position: relative; overflow: hidden; }
+.privacy-card::after {
+  content: ""; position: absolute; right: -10px; bottom: -14px;
+  width: 76px; height: 76px; pointer-events: none; opacity: .12;
+  background-repeat: no-repeat; background-position: center; background-size: contain;
+  /* Inline shield-with-padlock glyph (data URI, no network). currentColor via stroke. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233730a3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3Crect x='9' y='11' width='6' height='5' rx='1'/%3E%3Cpath d='M10 11V9.5a2 2 0 0 1 4 0V11'/%3E%3C/svg%3E");
+}
+[data-theme="dark"] .privacy-card::after {
+  opacity: .16;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23a5b4fc' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'/%3E%3Crect x='9' y='11' width='6' height='5' rx='1'/%3E%3Cpath d='M10 11V9.5a2 2 0 0 1 4 0V11'/%3E%3C/svg%3E");
+}
+.privacy-card-head, .privacy-card p { position: relative; z-index: 1; }
+
+/* ── Split "New invoice" button — chevron caret affordance from the mockup ── */
+.btn.split-primary { display: inline-flex; align-items: center; gap: 4px; }
+.btn.split-primary .split-caret {
+  width: 15px; height: 15px; flex: 0 0 auto;
+  margin-left: 4px; padding-left: 10px; box-sizing: content-box;
+  border-left: 1px solid rgba(255,255,255,.32);
+  opacity: .92;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .unlock-pro-card { transition: none !important; }
+  .unlock-pro-card .unlock-pro-cta { transition: none !important; }
+}
+
+
+/* ── Safari / iOS WebKit compatibility ───────────────────────────────────── */
+/* Prevent iOS text inflation on rotate; keep authored scale. */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+/* Kill the grey iOS tap-flash on custom controls — real feedback is the app's
+   own :active / :focus-visible styles. */
+* { -webkit-tap-highlight-color: transparent; }
+/* iOS Safari zooms the page when a focused input's font-size is < 16px. Force
+   >=16px on touch devices only; desktop keeps its tighter type scale. */
+@media (pointer: coarse) {
+  input, select, textarea { font-size: 16px !important; }
+}
+
+/* Match native UI (scrollbars, dropdowns, date pickers, autofill) to the active
+   theme instead of always rendering light. Follows the app toggle via data-theme. */
+:root { color-scheme: light; }
+[data-theme="dark"] { color-scheme: dark; }
+
+/* Skip-to-content link (WCAG 2.4.1) — visually hidden until keyboard-focused. */
+.skip-link {
+  position: absolute; left: 8px; top: -48px; z-index: 60;
+  background: var(--card, #fff); color: var(--brand, #0e7490); font-weight: 700; font-size: 13px;
+  padding: 8px 14px; border-radius: 10px; border: 1.5px solid var(--brand-border, rgba(0,0,0,.14));
+  transition: top .15s ease;
+}
+.skip-link:focus { top: 8px; }

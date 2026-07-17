@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Help — Local Invoice</title>
+<meta name="description" content="Support for Local Invoice — how to reach us, common questions about syncing and backups, and how Pro purchases, restores, and refunds work.">
+<link rel="canonical" href="https://localinvoiceapp.com/support.html">
+<link rel="icon" href="assets/favicon.svg">
+<script>try{var n=(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform())||location.protocol==='capacitor:'||location.hostname==='localhost'||/[?&]native=1/.test(location.search);if(n)document.documentElement.className+=' native';}catch(e){}</script>
+<style>
+  /* Platform-aware payment/refund copy: web shows Stripe + email-us; the iOS app shows Apple refunds. */
+  .only-ios { display: none; }
+  html.native .only-web { display: none; }
+  html.native .only-ios { display: block; }
+  :root {
+    --brand: #4338ca; --brand-dark: #3730a3; --brand-soft: #eef2ff;
+    --ink: #1a1a2e; --muted: #6b7280; --line: #e7e8ee; --bg: #f7f7fb; --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink); background: var(--bg); margin: 0; line-height: 1.6;
+  }
+  .topbar {
+    padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 18px max(24px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--line); background: rgba(255,255,255,.85);
+    backdrop-filter: saturate(180%) blur(12px); position: sticky; top: 0;
+  }
+  .topbar a { color: var(--ink); text-decoration: none; font-weight: 800; font-size: 17px; letter-spacing: -.3px; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 30px; letter-spacing: -.5px; margin: 0 0 6px; }
+  .sub { color: var(--muted); font-size: 15.5px; margin-bottom: 28px; }
+  h2 { font-size: 19px; margin: 34px 0 10px; }
+  p, li { color: #333; font-size: 15.5px; }
+  ul { padding-left: 22px; }
+  a { color: var(--brand); }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 22px; margin: 20px 0;
+  }
+  .btn {
+    display: inline-block; background: var(--brand); color: #fff; font-weight: 700;
+    padding: 11px 20px; border-radius: 10px; margin-top: 6px;
+  }
+  .btn-copy {
+    display: block; background: none; border: none; padding: 0; margin: 10px 0 0;
+    color: var(--muted); font: inherit; font-size: 13.5px; cursor: pointer;
+    text-decoration: underline; text-underline-offset: 2px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand: #818cf8; --brand-dark: #a5b4fc; --brand-soft: #262a3d;
+      --ink: #e8e8ed; --muted: #9aa0b0; --line: #2c2e38; --bg: #15161a; --card: #1c1d22;
+    }
+    .topbar { background: rgba(21,22,26,.85); }
+    p, li { color: #c6c9d3; }
+    .btn { background: #6d5ef0; } /* deeper indigo fill so white text stays AA (matches the app's --brand-fill) */
+  }
+</style>
+</head>
+<body>
+  <div class="topbar"><a href="./">← Local Invoice</a></div>
+  <main>
+    <h1>Help</h1>
+    <p class="sub" style="margin-bottom:6px">Questions, bug reports, or feature requests — here's how to reach us.</p>
+    <p class="sub" style="font-size:13.5px">Last updated: July 16, 2026</p>
+
+    <div class="card">
+      <h2 style="margin-top:0">Contact</h2>
+      <p>Email <strong>support@localinvoiceapp.com</strong> and we'll get back to you.</p>
+      <a class="btn" href="mailto:support@localinvoiceapp.com">Email support</a>
+      <button class="btn-copy" type="button" onclick="copySupportAddress(this)">Copy address</button>
+    </div>
+
+    <h2>Common questions</h2>
+
+    <p><strong>Will my invoices sync to my other devices?</strong><br>
+    No — by design. Local Invoice stores everything only on the device you're using, with no account and no cloud sync. If you need an invoice on another device, export it as a PDF and share it over (AirDrop, email, etc.).</p>
+
+    <p><strong>I deleted the app / cleared my browser data — can I get my invoices back?</strong><br>
+    Only from a backup you made yourself. Since nothing is ever uploaded, there's no copy on our end to restore from. If you saved a backup file (footer → <strong>Back up your data</strong>), you can import it with <strong>Restore from backup</strong>. This is the tradeoff for full privacy — see the <a href="privacy.html">Privacy Policy</a> for details.</p>
+
+    <p><strong>Is there a paid plan?</strong><br>
+    Local Invoice is free to use, with an optional <strong>Pro</strong> unlock: a <strong>one-time $12.99 purchase</strong> (not a subscription) that unlocks custom logo &amp; branding, payment instructions, and recording partial payments &amp; deposits on every invoice.</p>
+    <p class="only-web">Checkout is handled securely by Stripe (via RevenueCat) — the processor only ever sees the email for your receipt and your payment method, never your invoices or client data. Pro comes with a <strong>30-day money-back guarantee</strong>: if it's not for you, email <a href="mailto:support@localinvoiceapp.com">support@localinvoiceapp.com</a> within 30 days for a full refund. Once approved, your refund takes about <strong>5–10 business days</strong> to appear on your statement.</p>
+    <p class="only-ios">On iPhone and iPad, checkout is handled by <strong>Apple</strong> through the App Store — we never see your card, name, or email. If Pro isn't for you, you can <strong>request a refund from Apple</strong> at <a href="https://reportaproblem.apple.com" target="_blank" rel="noopener">reportaproblem.apple.com</a>; Apple reviews and processes it.</p>
+
+    <p class="only-web"><strong>How do I get Pro back on a new device?</strong><br>
+    When you unlock Pro, you're given a one-time <strong>restore code</strong> (and a license card you can save). Since there are no accounts, that code is how you re-unlock Pro in your web browser on any device — keep it somewhere safe.</p>
+    <p class="only-web">Hold onto your Stripe receipt email as proof of purchase, too. Lost your code? Email <a href="mailto:support@localinvoiceapp.com">support@localinvoiceapp.com</a> and we'll help. The iPhone and iPad app sells Pro separately through the App Store.</p>
+    <p class="only-ios"><strong>How do I get Pro back on a new device?</strong><br>
+    Tap <strong>Restore Purchases</strong> and sign in with the Apple Account you bought Pro with — Apple brings your purchase back. Your Apple receipt is your proof of purchase.</p>
+
+    <p><strong>Does Local Invoice work offline?</strong><br>
+    Yes, once loaded. There's no server it depends on for day-to-day use.</p>
+
+    <h2>Request a refund</h2>
+    <div class="card">
+      <div class="only-web">
+      <p style="margin-top:0"><strong>30-day money-back guarantee.</strong> Email us and a real person reviews it — no forms, no runaround. Once approved, your refund goes back to your original payment method and takes about 5–10 business days to appear on your statement.</p>
+      <p>So we can find your purchase, please include your <strong>restore code</strong> and the <strong>email on your Stripe receipt</strong> in the message.</p>
+      <a class="btn" href="mailto:support@localinvoiceapp.com?subject=Refund%20request%20%E2%80%94%20Local%20Invoice%20Pro&body=Hi%2C%0A%0AI'd%20like%20to%20request%20a%20refund%20for%20Local%20Invoice%20Pro.%0A%0AMy%20restore%20code%3A%20%0AEmail%20on%20my%20Stripe%20receipt%3A%20%0AReason%20(optional)%3A%20%0A%0AThanks%20%E2%80%94%20I%20understand%20a%20real%20person%20will%20review%20this%20and%20reply.%0A">Request a refund</a>
+      </div>
+      <div class="only-ios">
+      <p style="margin-top:0"><strong>Refunds on iPhone &amp; iPad are handled by Apple.</strong> Apple manages all App Store purchases, so refund requests go directly to Apple — it's quick, and Apple reviews and processes it.</p>
+      <a class="btn" href="https://reportaproblem.apple.com" target="_blank" rel="noopener">Request a refund from Apple</a>
+      </div>
+    </div>
+
+    <h2>Something not covered here?</h2>
+    <p>Email <a href="mailto:support@localinvoiceapp.com">support@localinvoiceapp.com</a> — happy to help.</p>
+  </main>
+  <script>
+  function copySupportAddress(btn) {
+    var addr = 'support@localinvoiceapp.com';
+    function done() {
+      btn.textContent = 'Copied';
+      btn.disabled = true;
+      setTimeout(function () { btn.textContent = 'Copy address'; btn.disabled = false; }, 2000);
+    }
+    function fallback() { window.prompt('Copy the address:', addr); }
+    try {
+      navigator.clipboard.writeText(addr).then(done, fallback);
+    } catch (e) {
+      fallback();
+    }
+  }
+  </script>
+</body>
+</html>

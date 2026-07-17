@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://da08ctfrofx1b.cloudfront.net; font-src 'self'; connect-src 'self' https://api.revenuecat.com https://e.revenue.cat https://js.stripe.com; worker-src 'self' blob:; frame-src https://js.stripe.com; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Local Invoice — Private Invoice Maker</title>
+  <meta name="description" content="Create and send professional invoices entirely in your browser. Your clients, line items, and income never leave your device — no uploads, no accounts, no tracking.">
+  <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+  <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
+  <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+  <link rel="canonical" href="https://localinvoiceapp.com/">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#0f1115" media="(prefers-color-scheme: dark)">
+  <link rel="manifest" href="assets/manifest.webmanifest">
+  <!-- Open Graph / social share -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Local Invoice">
+  <meta property="og:url" content="https://localinvoiceapp.com/">
+  <meta property="og:title" content="Local Invoice — Private invoices that never leave your device">
+  <meta property="og:description" content="Create and send professional invoices entirely in your browser. Your clients, line items, and income never leave your device — no uploads, no accounts, no tracking.">
+  <meta property="og:image" content="https://localinvoiceapp.com/assets/og-image.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:image:alt" content="Local Invoice — 100% private, on your device">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Local Invoice — Private invoices that never leave your device">
+  <meta name="twitter:description" content="Create and send professional invoices entirely in your browser. Your clients, line items, and income never leave your device — no uploads, no accounts, no tracking.">
+  <meta name="twitter:image" content="https://localinvoiceapp.com/assets/og-image.png">
+  <!-- Applies the saved theme before first paint (external file to satisfy the strict CSP). -->
+  <script src="theme-init.js?v=b298dfb232"></script>
+  <link rel="stylesheet" href="styles.css?v=b298dfb232">
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Local Invoice","url":"https://localinvoiceapp.com/","description":"Create and send professional invoices entirely in your browser. Your clients, line items, and income never leave your device — no uploads, no accounts, no tracking.","applicationCategory":"FinanceApplication","operatingSystem":"Web browser","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Runs entirely in the browser — no account, no upload.","publisher":{"@type":"Organization","name":"Local Invoice"}}</script>
+</head>
+<body>
+  <a class="skip-link" href="#appMain">Skip to content</a>
+  <div class="app-shell">
+    <!-- ── Sidebar nav ─────────────────────────────────────────────── -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand" id="logo" role="button" tabindex="0" aria-label="Local Invoice — go to dashboard">
+        <img src="assets/brand-icon-512.png" alt="Local Invoice logo" class="brand-logo" width="30" height="30">
+        <div class="sidebar-brand-text">
+          <b>Local <span class="wordmark-accent">Invoice</span></b>
+          <span class="sidebar-brand-sub">Private · Local · Secure</span>
+        </div>
+      </div>
+
+      <nav class="sidebar-nav" id="sidebarNav" aria-label="Main">
+        <a class="nav-item" href="#/dashboard" data-route="dashboard">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11.5 12 4l9 7.5"/><path d="M5 10v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-9"/></svg>
+          <span>Dashboard</span>
+        </a>
+        <a class="nav-item" href="#/invoices" data-route="invoices">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M7 3h7l5 5v13a0 0 0 0 1 0 0H5a0 0 0 0 1 0 0V5a2 2 0 0 1 2-2z"/><path d="M14 3v5h5"/><path d="M8 13h8M8 17h5"/></svg>
+          <span>Invoices</span>
+        </a>
+        <a class="nav-item nav-estimates" href="#/estimates" data-route="estimates">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0l-7.2-7.2a2 2 0 0 1-.6-1.4V4a1 1 0 0 1 1-1h7.9a2 2 0 0 1 1.4.6l7.5 7.5a2 2 0 0 1 0 2.8z"/><circle cx="7.5" cy="7.5" r="1.3"/></svg>
+          <span>Estimates</span>
+        </a>
+        <a class="nav-item" href="#/clients" data-route="clients">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="8" r="3.2"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M16 5.2a3.2 3.2 0 0 1 0 5.6"/><path d="M17.5 14.5a5.5 5.5 0 0 1 3 5"/></svg>
+          <span>Clients</span>
+        </a>
+        <a class="nav-item" href="#/settings" data-route="settings">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-foot">
+        <!-- Unlock Pro card is rendered imperatively into this slot by app.js
+             (renderUnlockProCard) and hidden entirely for Pro owners. -->
+        <div id="unlockProSlot"></div>
+        <div class="privacy-card">
+          <div class="privacy-card-head">
+            <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>
+            <b>Private by design</b>
+          </div>
+          <p>Your invoices and clients never leave your device.</p>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── Main column ─────────────────────────────────────────────── -->
+    <div class="app-col">
+      <div class="topbar">
+        <button type="button" class="nav-toggle" id="navToggle" aria-label="Toggle navigation" aria-expanded="false">
+          <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
+        </button>
+        <div class="topbar-right">
+          <button type="button" id="unlockProTopbar" class="topbar-unlock-pro pro-owned" aria-label="Unlock Local Invoice Pro — $12.99 one-time">
+            <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 7l4.5 3.5L12 4l4.5 6.5L21 7l-1.8 11H4.8L3 7zm2 13h14v1.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V20z"/></svg>
+            <span>Unlock Pro</span>
+          </button>
+          <button type="button" id="newInvoiceBtn" class="btn sm topbar-new">+ New invoice</button>
+          <button type="button" id="themeToggle" class="theme-toggle" aria-label="Switch theme">
+            <svg class="theme-icon-sun" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4.2"/><path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"/></svg>
+            <svg class="theme-icon-moon" aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <main class="app-main" id="appMain" tabindex="-1">
+        <!-- ── DASHBOARD ROUTE ─────────────────────────────────────── -->
+        <section id="view-dashboard" class="route-view"></section>
+
+        <!-- ── INVOICES ROUTE ──────────────────────────────────────── -->
+        <section id="view-invoices" class="route-view hidden"></section>
+
+        <!-- ── ESTIMATES ROUTE ─────────────────────────────────────── -->
+        <section id="view-estimates" class="route-view hidden"></section>
+
+        <!-- ── CLIENTS ROUTE ───────────────────────────────────────── -->
+        <section id="view-clients" class="route-view hidden"></section>
+
+        <!-- ── SETTINGS ROUTE ──────────────────────────────────────── -->
+        <section id="view-settings" class="route-view hidden"></section>
+
+        <!-- ── HUB (legacy list container — reused by list views) ───── -->
+        <div id="hub" class="hidden">
+          <div class="wrap">
+            <div id="recurringPrompts" class="recurring-prompts hidden"></div>
+            <div class="section-head">
+              <h2>Your invoices</h2>
+              <button type="button" id="insightsBtn" class="btn ghost sm hidden">Insights</button>
+            </div>
+            <div id="hubSummary" class="hub-summary hidden"></div>
+            <div id="hubControls" class="hub-controls hidden"></div>
+            <div id="invoiceList" class="invoice-list"></div>
+            <div id="emptyState" class="empty hidden">
+              <p>No invoices yet.</p>
+              <p class="muted">Create your first one — it's saved right here on this device.</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── INSIGHTS (legacy — folded into Dashboard, kept for reuse) ─ -->
+        <div id="insights" class="insights hidden"></div>
+
+        <!-- ── EDITOR (overlay route) ──────────────────────────────── -->
+        <div id="editor" class="editor hidden"></div>
+
+        <footer>
+          Local Invoice — a private invoice maker that runs on your device.<br>
+          Not legal, tax, or accounting advice.<br>
+          Built with <a href="https://pdf-lib.js.org" target="_blank" rel="noopener">pdf-lib</a>, bundled locally.<br>
+          <a href="privacy.html">Privacy Policy</a> · <a href="https://edenapps.app/terms.html" target="_blank" rel="noopener">Terms</a> · <a href="support.html">Help</a><br>
+          <span class="eden-byline">An Eden Apps app · <a href="https://edenapps.app" target="_blank" rel="noopener">edenapps.app</a></span><br>
+          <button type="button" id="footerRestoreLink" class="restore-link" style="margin-top: 8px;">Already bought Pro? Restore with a code</button>
+          <button type="button" id="footerLicenseLink" class="restore-link hidden">View your Pro license card</button>
+          <div class="footer-tools">
+            <button type="button" id="footerBackupBtn" class="restore-link">Back up your data</button>
+            <span aria-hidden="true">·</span>
+            <button type="button" id="footerRestoreBackupBtn" class="restore-link">Restore from backup</button>
+            <input type="file" id="vaultFileInput" accept=".json,application/json" class="hidden">
+          </div>
+        </footer>
+      </main>
+    </div>
+    <div class="sidebar-scrim" id="sidebarScrim" hidden></div>
+  </div>
+
+  <!-- pdf-lib is lazy-loaded on first PDF export (see ensurePdfLib in app.js) -->
+  <script src="billing.js?v=b298dfb232"></script>
+  <script src="app.js?v=b298dfb232"></script>
+</body>
+</html>

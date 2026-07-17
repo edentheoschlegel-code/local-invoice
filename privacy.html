@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy Policy — Local Invoice</title>
+<meta name="description" content="Local Invoice privacy policy — your invoices, clients, and business data stay on your device. No server, no account, no analytics, no tracking.">
+<link rel="canonical" href="https://localinvoiceapp.com/privacy.html">
+<link rel="icon" href="assets/favicon.svg">
+<script>try{var n=(window.Capacitor&&typeof window.Capacitor.isNativePlatform==='function'&&window.Capacitor.isNativePlatform())||location.protocol==='capacitor:'||location.hostname==='localhost'||/[?&]native=1/.test(location.search);if(n)document.documentElement.className+=' native';}catch(e){}</script>
+<style>
+  :root {
+    --brand: #4338ca; --brand-dark: #3730a3; --brand-soft: #eef2ff;
+    --ink: #1a1a2e; --muted: #6b7280; --line: #e7e8ee; --bg: #f7f7fb; --card: #ffffff;
+  }
+  * { box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: var(--ink); background: var(--bg); margin: 0; line-height: 1.6;
+  }
+  .topbar {
+    padding: max(18px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) 18px max(24px, env(safe-area-inset-left));
+    border-bottom: 1px solid var(--line); background: rgba(255,255,255,.85);
+    backdrop-filter: saturate(180%) blur(12px); position: sticky; top: 0;
+  }
+  .topbar a { color: var(--ink); text-decoration: none; font-weight: 800; font-size: 17px; letter-spacing: -.3px; }
+  main { max-width: 680px; margin: 0 auto; padding: 40px 24px 80px; }
+  h1 { font-size: 30px; letter-spacing: -.5px; margin: 0 0 6px; }
+  .updated { color: var(--muted); font-size: 13.5px; margin-bottom: 28px; }
+  h2 { font-size: 19px; margin: 34px 0 10px; }
+  p, li { color: #333; font-size: 15.5px; }
+  /* Platform-aware payment copy: web shows Stripe, the iOS app shows Apple In-App Purchase. */
+  .only-ios { display: none; }
+  html.native .only-web { display: none; }
+  html.native .only-ios { display: block; }
+  ul { padding-left: 22px; }
+  code {
+    background: var(--brand-soft); color: var(--brand-dark);
+    padding: 2px 6px; border-radius: 5px; font-size: 13.5px;
+  }
+  a { color: var(--brand); }
+  .card {
+    background: var(--card); border: 1px solid var(--line); border-radius: 14px;
+    padding: 18px 22px; margin: 20px 0;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --brand: #818cf8; --brand-dark: #a5b4fc; --brand-soft: #262a3d;
+      --ink: #e8e8ed; --muted: #9aa0b0; --line: #2c2e38; --bg: #15161a; --card: #1c1d22;
+    }
+    .topbar { background: rgba(21,22,26,.85); }
+    p, li { color: #c6c9d3; }
+  }
+</style>
+</head>
+<body>
+  <div class="topbar"><a href="./">← Local Invoice</a></div>
+  <main>
+    <h1>Privacy Policy</h1>
+    <div class="updated">Last updated: July 16, 2026</div>
+
+    <p>Local Invoice exists so you can bill your clients without handing their names, emails, and what you charge them to someone else's server. Here is exactly what it does and does not do.</p>
+
+    <h2>The short version</h2>
+    <div class="card">
+      <p class="only-web"><strong>Your invoices never leave your device.</strong> Local Invoice runs entirely in your browser — there is no server, no account, no sign-up, and no sync. It contains no analytics and no tracking. Your business details, your clients, and your invoices are never sent anywhere. The only time Local Invoice touches the network is to buy Pro or confirm an existing Pro unlock — see <a href="#payments">Payments</a> below.</p>
+      <p class="only-ios"><strong>Your invoices never leave your device.</strong> Local Invoice runs entirely on your phone — there is no server, no account, no sign-up, and no sync. It contains no analytics and no tracking. Your business details, your clients, and your invoices are never sent anywhere. At launch, the app confirms your purchase status with RevenueCat using an anonymous identifier; nothing you create is ever sent — see <a href="#payments">Payments</a> below.</p>
+    </div>
+
+    <h2>What it stores, and where</h2>
+    <p>Everything is stored locally, on your own device:</p>
+    <ul>
+      <li><strong>On the web</strong>, your data lives in your browser's <code>localStorage</code>, namespaced under <code>localinvoice.v1</code> — storage your browser keeps on your machine and never uploads anywhere on its own.</li>
+      <li><strong>In the app</strong>, the same data lives in the app's private on-device storage, sandboxed to Local Invoice the same way any other app's data is.</li>
+    </ul>
+    <p>What's stored: your business ("From") details, your saved clients' names/emails/addresses, and every invoice you create or save — line items, amounts, notes, dates, and status. Nothing is encrypted beyond whatever protection your device already provides (e.g. your phone's passcode/Face ID, or your Mac's disk encryption), because nothing ever needs to travel anywhere in the first place.</p>
+    <p>If you uninstall the app or clear your browser's site data for Local Invoice, this data is gone — there's no copy anywhere else to restore it from, because we never had one.</p>
+
+    <h2>What we send anywhere</h2>
+    <p>Your invoice and client data: nothing. Creating, previewing, saving, and exporting an invoice all happen entirely on your device — the PDF is generated locally too, using an open-source library (<code>pdf-lib</code>) that runs in the browser/app itself. None of your business, client, or invoice content is ever transmitted.</p>
+    <p class="only-web">The one exception is buying or restoring Pro, which you opt into. If you do, the payment processor (Stripe, via RevenueCat) handles the checkout and an anonymous device identifier / restore code is used to check whether Pro is active. That request carries no invoices, no client details, and no business data — see <a href="#payments">Payments</a> for exactly what it can see.</p>
+    <p class="only-ios">The one exception is Pro. On iPhone and iPad, Apple handles the purchase through the App Store, and the app confirms with RevenueCat — at launch and when you buy or restore — whether Pro is active, using an anonymous identifier. That check carries no invoices, no client details, and no business data — see <a href="#payments">Payments</a> for exactly what it can see.</p>
+    <p>When you tap <strong>Download PDF</strong>, the file is handed to your operating system's own share sheet (on iOS) or your browser's own download prompt (on the web) — Local Invoice doesn't choose where it goes next; you do.</p>
+    <!-- Payments is platform-aware: .only-web = Stripe (web billing); .only-ios = Apple In-App Purchase (iPhone/iPad). Toggled by the html.native class set in <head>. -->
+    <h2 id="payments">Payments</h2>
+    <p>Local Invoice is free to use. If you want the extras (custom logo &amp; branding, payment instructions, and recording partial payments &amp; deposits on every invoice), <strong>Pro is a one-time $12.99 purchase — not a subscription</strong>. You unlock it once and it's yours.</p>
+    <div class="only-web">
+    <p>If you upgrade to Pro, payments are securely processed by <strong>Stripe</strong> and <strong>RevenueCat</strong>. You enter your payment details directly with our payment providers — <strong>we never see or store your full card number</strong>.</p>
+    <p>To process your purchase, our payment providers share limited information with us, including:</p>
+    <ul>
+      <li>your email address</li>
+      <li>your name (if your payment method provides it)</li>
+      <li>the amount paid</li>
+      <li>your card&#39;s brand and last four digits</li>
+    </ul>
+    <p>We use this information only to <strong>send receipts</strong>, <strong>process refunds</strong>, and <strong>provide customer support</strong>. Your payment information is <strong>never linked to your data inside the app</strong>, never used for marketing, and never sold or shared.</p>
+    <p>Stripe and RevenueCat process your payment and retain their own transaction records under their respective privacy policies. See <a href="https://stripe.com/privacy" target="_blank" rel="noopener">Stripe&#39;s Privacy Policy</a> and <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">RevenueCat&#39;s Privacy Policy</a>.</p>
+    <p><strong>30-day money-back guarantee.</strong> If Pro isn't for you, email <a href="mailto:support@localinvoiceapp.com">support@localinvoiceapp.com</a> within 30 days of purchase for a full refund.</p>
+    </div>
+    <div class="only-ios">
+    <p>On iPhone and iPad, Pro is sold through the <strong>App Store using Apple&#39;s In-App Purchase</strong>. Apple handles the entire checkout — you pay with your Apple Account. <strong>We never see or handle your card, and we never receive your name or email.</strong></p>
+    <p>After a purchase, all we receive is <strong>anonymized sales totals</strong> from Apple (how many, not who) and a <strong>random identifier</strong> from RevenueCat that the app uses to check whether Pro is active on your device. It isn&#39;t tied to your Apple Account, your name, or anything you create in the app — and it&#39;s never used for marketing, never sold, and never shared.</p>
+    <p><strong>Your receipt comes from Apple, and any refund is handled by Apple</strong>, not by us. To request a refund, use Apple&#39;s own process at <a href="https://reportaproblem.apple.com" target="_blank" rel="noopener">reportaproblem.apple.com</a>. RevenueCat verifies your purchase on our behalf under its <a href="https://www.revenuecat.com/privacy" target="_blank" rel="noopener">Privacy Policy</a>.</p>
+    </div>
+
+    <h2>Permissions, explained</h2>
+    <p>The app requests <strong>no special device permissions</strong> — no contacts, no photos, no location, no camera, no microphone, no notifications. The only system interaction is the standard <strong>share sheet</strong> (iOS) or <strong>file download</strong> (web) used to hand your exported PDF to another app of your choosing, such as Mail or Files — the same mechanism any app uses to let you save or share a file, and one you control each time it happens.</p>
+
+    <h2>Changes</h2>
+    <p>If this policy ever changes, the updated version will be posted here with a new "Last updated" date.</p>
+
+    <h2>Contact</h2>
+    <p>Questions can be sent to: <strong><a href="mailto:support@localinvoiceapp.com">support@localinvoiceapp.com</a></strong></p>
+  </main>
+</body>
+</html>
