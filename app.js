@@ -4880,20 +4880,31 @@ renderUnlockProCard(); // seed the sidebar "Unlock Pro" door (removes itself for
   // so opening someone else's link would silently and permanently discard this
   // device's own code. If a DIFFERENT code is already saved here, ask before
   // switching. Re-scanning your own card (same code) stays one-step seamless.
-  let existing = null;
+  // Gate on ACTIVE Pro, not on a code being present. Two states the code check missed:
+  // a buyer whose mint failed is Pro with NO code (that's what the self-heal nag exists for)
+  // and would have been switched silently; and a refunded owner keeps a dead code forever
+  // (nothing ever clears RESTORE_CODE_KEY), so gating on the code prompted them to "keep"
+  // a code that unlocks nothing and blocked a legitimate re-scan after rebuying.
+  let existing = null, proActive = false;
   try { existing = Billing.getRestoreCode(); } catch (e) {}
-  if (existing && existing !== normalized) {
+  try { proActive = Billing.isPro(); } catch (e) {}
+  if (proActive && existing !== normalized) {
     const backdrop = el("div", "modal-backdrop");
     const modal = el("div", "modal pro-modal");
     let cleanup = () => {};
     const close = () => { cleanup(); backdrop.remove(); };
     modal.appendChild(txt("h3", null, "Keep your current Pro code?"));
-    modal.appendChild(txt("p", "hint", "This device already has a Pro code saved:"));
-    const box = el("div", "restore-code-box");
-    box.appendChild(txt("div", "restore-code-value", existing));
-    modal.appendChild(box);
-    modal.appendChild(txt("p", "hint",
-      "The link you opened restores a different code. Switching replaces the code saved on this device — if you haven't saved your license card, the current code can't be recovered here."));
+    if (existing) {
+      modal.appendChild(txt("p", "hint", "This device already has a Pro code saved:"));
+      const box = el("div", "restore-code-box");
+      box.appendChild(txt("div", "restore-code-value", existing));
+      modal.appendChild(box);
+      modal.appendChild(txt("p", "hint",
+        "The link you opened restores a different code. Switching replaces the code saved on this device — if you haven't saved your license card, the current code can't be recovered here."));
+    } else {
+      modal.appendChild(txt("p", "hint",
+        "Pro is already unlocked on this device, but no restore code has been saved here yet. The link you opened would move this device onto a different purchase, and this one would be lost. Keep this device's Pro and save a code for it from the Pro menu."));
+    }
     const keepBtn = txt("button", "btn big", "Keep my current code"); keepBtn.type = "button";
     keepBtn.onclick = close;
     const switchBtn = txt("button", "btn ghost", "Switch to the new code"); switchBtn.type = "button";
