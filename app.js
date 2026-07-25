@@ -2321,7 +2321,7 @@ function applyNativePrice(apply) {
 
 // ── Sidebar "Unlock Pro" front door ────────────────────────────────────────
 // A quiet, honest entry point to the EXISTING $12.99 one-time offer, mounted in
-// the sidebar footer above the "100% Private" card. It only OPENS showProModal()
+// the sidebar footer above the "Private by design" card. It only OPENS showProModal()
 // (the real paywall) — no billing/price logic lives here. Owners never see it:
 // re-rendered on every Pro-status change (via refreshAfterProChange) and at boot,
 // it removes itself whenever Billing.isPro() is true. isPro() throwing is treated
