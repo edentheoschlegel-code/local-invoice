@@ -2033,7 +2033,7 @@ function makeDialog(backdrop, modal, onEscape) {
 function appendCelebration(modal) {
   const head = el("div", "celebrate-head");
   head.appendChild(txt("div", "celebrate-emoji", "🎉"));
-  head.appendChild(txt("div", "celebrate-title", "It's yours — forever."));
+  head.appendChild(txt("div", "celebrate-title", "Pro, unlocked."));
   head.appendChild(txt("p", "celebrate-thanks", IS_NATIVE
     ? "Thank you for supporting Local Invoice. Pro is unlocked on this device — here's what you just turned on:"
     : "Thank you for supporting Local Invoice. Pro is unlocked on this browser — here's what you just turned on:"));
@@ -2045,7 +2045,9 @@ function appendCelebration(modal) {
     "Payments & deposits — record partial payments and see the exact balance due on every invoice",
   ].forEach((t) => ul.appendChild(txt("li", null, t)));
   modal.appendChild(ul);
-  launchConfetti();
+  // launchConfetti() call removed 2026-08-05 at Eden's request — it drew ON TOP of the
+  // modal (the layer sat above it in the stacking order) and covered the feature list.
+  // The function below is left in place, unused, so it can be restored deliberately.
 }
 
 // After a successful purchase WITH a code. If this is the first-ever unlock,
@@ -2548,7 +2550,7 @@ function showProModal() {
       if (res && res.ok) { close(); refreshAfterProChange(); runPendingProIntent(); }
       else {
         restoreLink.disabled = false; restoreLink.textContent = prev;
-        proStatus(msgHost, "No previous purchase found. Make sure you're signed in with the Apple Account you bought Pro with.", "info");
+        proStatus(msgHost, "No previous purchase found. Make sure you're signed in with the Apple Account you bought Pro with. Bought on the web? Web and App Store purchases are separate — your code works in your browser.", "info");
       }
     };
   } else {
@@ -3143,14 +3145,14 @@ function showVaultError(message) {
   cleanup = makeDialog(backdrop, modal, close);
 }
 
-function showVaultToast(msg) {
+function showVaultToast(msg, ms) {
   const n = txt("div", "vault-toast", msg);
   n.setAttribute("role", "status");
   n.setAttribute("aria-live", "polite");
   n.setAttribute("aria-atomic", "true");
   n.style.bottom = 24 + document.querySelectorAll(".vault-toast").length * 54 + "px";
   document.body.appendChild(n);
-  setTimeout(() => n.remove(), 4500);
+  setTimeout(() => n.remove(), ms || 4500);
 }
 
 // ── Theme (light / dark / system) ─────────────────────────────────────────
@@ -4705,7 +4707,7 @@ function renderSettingsView(host) {
       catch (e) { console.error("Local Invoice: restore threw", e); res = { ok: false }; }
       restoreLink.disabled = false; restoreLink.textContent = prev;
       if (res && res.ok) { refreshAfterProChange(); runPendingProIntent(); showVaultToast("Pro restored on this device."); }
-      else { showVaultToast("No previous purchase found for this Apple Account."); }
+      else { showVaultToast("No previous purchase found for this Apple Account. Bought on the web? Web and App Store purchases are separate — your code works in your browser.", 9000); }
     };
   } else {
     restoreLink.onclick = () => showRestoreEntryModal();
