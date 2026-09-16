@@ -28044,12 +28044,12 @@ but received
         const pkg = offerings && offerings.current && offerings.current.lifetime;
         if (!pkg) {
           purchaseLockUntil = 0;
-          return { ok: false, error: "Pro isn't available for purchase right now \u2014 try again shortly." };
+          return { ok: false, error: "Pro isn't available for purchase right now. Try again shortly." };
         }
         if (isZeroPriced(pkg.product)) {
           purchaseLockUntil = 0;
-          console.error("Local Invoice: refusing purchase \u2014 the storefront reports a zero price for the Pro package");
-          return { ok: false, error: "Pro isn't available for purchase right now \u2014 try again shortly." };
+          console.error("Local Invoice: refusing purchase. The storefront reports a zero price for the Pro package");
+          return { ok: false, error: "Pro isn't available for purchase right now. Try again shortly." };
         }
         const { customerInfo } = await Purchases.purchasePackage({ aPackage: pkg });
         cachedProStatus = readEntitlement(customerInfo);
@@ -28058,7 +28058,7 @@ but received
           clearPurchaseAttempted();
           purchaseLockUntil = 0;
         } else markPurchaseAttempted();
-        return cachedProStatus ? { ok: true } : { ok: false, pending: true, error: "Your purchase went through \u2014 your Pro will unlock in a moment. If it doesn't, reopen the app." };
+        return cachedProStatus ? { ok: true } : { ok: false, pending: true, error: "Your purchase went through. Your Pro will unlock in a moment. If it doesn't, reopen the app." };
       } catch (e) {
         if (isNativeCancel(e)) {
           purchaseLockUntil = 0;
@@ -28112,7 +28112,7 @@ but received
       const pkg = offerings && offerings.current && offerings.current.lifetime;
       if (!pkg) {
         purchaseLockUntil = 0;
-        return { ok: false, error: "Pro isn't available for purchase right now \u2014 try again shortly." };
+        return { ok: false, error: "Pro isn't available for purchase right now. Try again shortly." };
       }
       const result = await getPurchases().purchase({ rcPackage: pkg });
       cachedProStatus = readEntitlement(result.customerInfo);
@@ -28167,7 +28167,7 @@ but received
       }
       if (!cachedProStatus) {
         markPurchaseAttempted();
-        return { ok: false, pending: true, restoreCode: mintedCode, error: "Your payment went through \u2014 your Pro will unlock automatically in a moment. If it doesn't, reload this page." };
+        return { ok: false, pending: true, restoreCode: mintedCode, error: "Your payment went through. Your Pro will unlock automatically in a moment. If it doesn't, reload this page." };
       }
       purchaseLockUntil = 0;
       return { ok: true, restoreCode: mintedCode };
@@ -28282,7 +28282,7 @@ but received
     return { ok: ok2 };
   }
   var CARD_DOMAIN = "localinvoiceapp.com";
-  var CARD_FOOTER = "Restores Pro in your web browser, on any device. Keep it private \u2014 anyone with it gets Pro.";
+  var CARD_FOOTER = "Restores Pro in your web browser, on any device. Keep it private. Anyone with it gets Pro.";
   function renderLicenseCard(code, appName) {
     const text = String(code || "");
     const W = 1e3, H2 = 620, PAD = 56;
@@ -28396,11 +28396,11 @@ but received
           }
         }
         await revert2();
-        if (!anyChecked) return { ok: false, error: "Couldn't reach our servers to check that code \u2014 please try again in a moment." };
+        if (!anyChecked) return { ok: false, error: "Couldn't reach our servers to check that code. Please try again in a moment." };
         return { ok: false, error: "That code doesn't have an active Pro purchase." };
       } catch (e) {
         console.error("Local Invoice: restore by code failed (iOS)", e);
-        return { ok: false, error: "Couldn't check that code \u2014 try again." };
+        return { ok: false, error: "Couldn't check that code. Try again." };
       }
     }
     const candidates = raw === raw.toUpperCase() ? [raw] : [raw, raw.toUpperCase()];
@@ -28442,12 +28442,12 @@ but received
         }
       }
       await revert();
-      if (!anyChecked) return { ok: false, error: "Couldn't reach our servers to check that code \u2014 please try again in a moment." };
+      if (!anyChecked) return { ok: false, error: "Couldn't reach our servers to check that code. Please try again in a moment." };
       return { ok: false, error: "That code doesn't have an active Pro purchase." };
     } catch (e) {
       await revert();
       console.error("Local Invoice: restore by code failed", e);
-      return { ok: false, error: "Couldn't check that code \u2014 try again." };
+      return { ok: false, error: "Couldn't check that code. Try again." };
     }
   }
   return __toCommonJS(billing_src_exports);

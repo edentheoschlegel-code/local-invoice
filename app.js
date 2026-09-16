@@ -347,8 +347,8 @@ function saveStateWithRetry(onDone) {
 }
 
 function friendly(e) {
-  if (e && e.name === "QuotaExceededError") return "Couldn't save — your browser's local storage is full. Try removing an old invoice.";
-  if (e && e.name) return "Couldn't save — local storage is blocked (this can happen in private browsing). Try a normal browsing window.";
+  if (e && e.name === "QuotaExceededError") return "Couldn't save. Your browser's local storage is full. Try removing an old invoice.";
+  if (e && e.name) return "Couldn't save. Local storage is blocked (this can happen in private browsing). Try a normal browsing window.";
   return "Something went wrong saving that. Your data on this device is unaffected.";
 }
 // doExport()'s failures are a different domain entirely (PDF generation, or
@@ -356,7 +356,7 @@ function friendly(e) {
 // mislabeled ANY export failure as "local storage is blocked" purely because
 // most thrown errors happen to have a `.name` property, regardless of cause.
 function friendlyExportError() {
-  return "Couldn't export that — try again. Your data on this device is unaffected.";
+  return "Couldn't export that. Try again. Your data on this device is unaffected.";
 }
 
 // ── Invoice model helpers ───────────────────────────────────────────────
@@ -578,7 +578,7 @@ function renderHubInternal() {
       emptyEl.appendChild(txt("p", "muted", "Try a different name, number, or status."));
     } else {
       emptyEl.appendChild(txt("p", null, "No invoices yet."));
-      emptyEl.appendChild(txt("p", "muted", "Create your first one — it's saved right here on this device."));
+      emptyEl.appendChild(txt("p", "muted", "Create your first one. It's saved right here on this device."));
     }
   }
 
@@ -865,7 +865,7 @@ function buildInsights() {
 
   const title = el("div", "insights-title");
   title.appendChild(txt("h1", null, "Income insights"));
-  title.appendChild(txt("p", "insights-sub", "A live look at your invoicing — computed on this device from your invoices. Nothing is uploaded."));
+  title.appendChild(txt("p", "insights-sub", "A live look at your invoicing. Computed on this device from your invoices. Nothing is uploaded."));
   root.appendChild(title);
 
   // Empty state: no invoices at all.
@@ -885,7 +885,7 @@ function buildInsights() {
   if (groups.length === 0) {
     const empty = el("div", "insights-empty");
     empty.appendChild(txt("p", null, "No billed income yet."));
-    empty.appendChild(txt("p", "muted", "Estimates are quotes, not income — convert one to an invoice (or create an invoice) to see totals here."));
+    empty.appendChild(txt("p", "muted", "Estimates are quotes, not income. Convert one to an invoice (or create an invoice) to see totals here."));
     root.appendChild(empty);
     return;
   }
@@ -898,7 +898,7 @@ function buildInsights() {
 
   if (multi) {
     // Currency switcher — one chip per currency, showing the invoice count.
-    const hint = txt("p", "insights-hint", "Your invoices span multiple currencies. To keep the math honest, amounts are never mixed — pick a currency to view its totals.");
+    const hint = txt("p", "insights-hint", "Your invoices span multiple currencies. To keep the math honest, amounts are never mixed. Pick a currency to view its totals.");
     root.appendChild(hint);
     const switcher = el("div", "insights-cur-switch");
     switcher.setAttribute("role", "group");
@@ -1132,7 +1132,7 @@ function renderRecurringBanner() {
     const period = recurringPeriodLabel(inv, dueISO);
     // textContent-only (client name is user-derived).
     msg.appendChild(txt("span", null, `Time to bill ${client} again`));
-    if (period) msg.appendChild(txt("span", "recurring-prompt-period", ` — generate the ${period} invoice?`));
+    if (period) msg.appendChild(txt("span", "recurring-prompt-period", `. Generate the ${period} invoice?`));
     bar.appendChild(msg);
     const btns = el("div", "recurring-prompt-actions");
     const gen = txt("button", "btn sm", "Generate invoice"); gen.type = "button";
@@ -1436,7 +1436,7 @@ function buildPaymentsPanel(refresh) {
   };
   addSumRow("Invoice total", money(sum.total, cur));
   addSumRow("Paid to date", money(sum.paidToDate, cur));
-  addSumRow(sum.balanceDue <= 0 && sum.hasPayments ? "Balance due — paid in full" : "Balance due",
+  addSumRow(sum.balanceDue <= 0 && sum.hasPayments ? "Balance due (paid in full)" : "Balance due",
             money(sum.balanceDue, cur),
             sum.hasPayments ? (sum.balanceDue <= 0 ? "settled" : "outstanding") : "");
   panel.appendChild(summary);
@@ -1611,7 +1611,7 @@ function buildRecurringPanel() {
     panel.appendChild(hint);
     function refreshRecurringHint() { hint.textContent = recurringHintText(draft.recurring); }
   } else {
-    panel.appendChild(txt("p", "field-hint", "When on, Local Invoice reminds you here to generate the next one — no emails, no background sending. You stay in control."));
+    panel.appendChild(txt("p", "field-hint", "When on, Local Invoice reminds you here to generate the next one. No emails, no background sending. You stay in control."));
   }
   return panel;
 }
@@ -1683,7 +1683,7 @@ function buildPaymentDetailsField() {
   const area = el("textarea");
   area.setAttribute("aria-label", "Payment details");
   area.value = draft.paymentDetails || "";
-  area.placeholder = "How clients pay you — bank details, PayPal.me link, Venmo handle…";
+  area.placeholder = "How clients pay you. Bank details, PayPal.me link, Venmo handle…";
   // livePreviewUpdate() (used by the line-item inputs) rebuilds the preview column
   // in place — it's a module-level helper, so unlike the buildEditor-scoped
   // refresh() it's safely in scope from this standalone builder.
@@ -1697,7 +1697,7 @@ function pickLogoFile() {
   input.onchange = () => {
     const file = input.files && input.files[0];
     if (!file) return;
-    if (file.size > MAX_LOGO_BYTES) { alert("That image is too large — please use one under 2MB."); return; }
+    if (file.size > MAX_LOGO_BYTES) { alert("That image is too large. Please use one under 2MB."); return; }
     const reader = new FileReader();
     reader.onload = () => {
       draft.from.logo = String(reader.result);
@@ -1742,18 +1742,18 @@ function refreshAfterProChange() {
 // Builds a mailto: link that pre-fills a warm, short email to support with the
 // person's restore code auto-inserted (or a clear "no code" note if null). A real
 // person reviews and processes the refund back to the original payment method.
-const REFUND_EXPECTATION = "30-day money-back guarantee. Email us and a real person reviews it — no forms, no runaround. Once approved, your refund goes back to your original payment method and takes about 5–10 business days to appear on your statement.";
+const REFUND_EXPECTATION = "30-day money-back guarantee. Email us and a real person reviews it. No forms, no runaround. Once approved, your refund goes back to your original payment method and takes about 5 to 10 business days to appear on your statement.";
 function buildRefundMailto() {
   let code = null;
   try { code = Billing.getRestoreCode(); } catch (e) { console.error("Local Invoice: getRestoreCode threw", e); }
   const codeLine = code ? `My restore code: ${code}` : "My restore code: (no code on this device)";
-  const subject = "Refund request — Local Invoice Pro";
+  const subject = "Refund request: Local Invoice Pro";
   const body =
     "Hi,\n\n" +
     "I'd like to request a refund for Local Invoice Pro.\n\n" +
     codeLine + "\n" +
     "Reason (optional): \n\n" +
-    "Thanks — I understand a real person will review this and reply.\n";
+    "Thanks. I understand a real person will review this and reply.\n";
   return `mailto:${SUPPORT_EMAIL}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 }
 // A quiet, guilt-free "Need a refund?" block: one calm expectations line + a
@@ -1820,7 +1820,7 @@ function showAccessStopNotice() {
   bar.setAttribute("role", "status");
   // The "why" + escape hatch live IN the banner: a verified revocation is in practice a
   // refund, and someone who didn't ask for one needs the support path right here.
-  bar.appendChild(txt("span", null, "Your Local Invoice Pro access has ended — this usually follows a refund. If it's unexpected, email " + SUPPORT_EMAIL + " and we'll sort it out. Everything you made is safe and still here, and every free feature keeps working — you're always welcome back."));
+  bar.appendChild(txt("span", null, "Your Local Invoice Pro access has ended. This usually follows a refund. If it's unexpected, email " + SUPPORT_EMAIL + " and we'll sort it out. Everything you made is safe and still here, and every free feature keeps working. You're always welcome back."));
   const close = txt("button", "license-nag-x", "×"); close.type = "button";
   close.setAttribute("aria-label", "Dismiss");
   close.onclick = () => bar.remove();
@@ -1864,7 +1864,7 @@ function renderPurchaseError(host, onRetry) {
   box.appendChild(txt("p", "pro-error-body",
     // "no charge was made just now" scopes the claim to THIS attempt — a person investigating
     // an earlier charge must never read it as "you were never charged".
-    "If your card was charged, your Pro will unlock automatically on your next visit — otherwise no charge was made just now."));
+    "If your card was charged, your Pro will unlock automatically on your next visit. Otherwise no charge was made just now."));
   box.appendChild(txt("p", "pro-error-secure", IS_NATIVE ? "Your App Store receipt is the record of what was charged, if anything." : "Your Stripe receipt is the record of what was charged, if anything."));
 
   // Support line with a mailto: (allowed) — email also renders as plain text.
@@ -1940,7 +1940,7 @@ function proToast(msg) {
 // failure. Reassure, give them their restore code now, and quietly promote to a full
 // unlock the moment the entitlement lands (no manual reload needed).
 function handlePurchasePending(restoreCode, message) {
-  const msg = message || "Your payment went through — your Pro is unlocking now. If it doesn't appear in a moment, reload this page.";
+  const msg = message || "Your payment went through. Your Pro is unlocking now. If it doesn't appear in a moment, reload this page.";
   proToast(msg);
   if (restoreCode) showRestoreCodeModal(restoreCode); // they paid; hand over their key straight away
   let tries = 0;
@@ -2035,14 +2035,14 @@ function appendCelebration(modal) {
   head.appendChild(txt("div", "celebrate-emoji", "🎉"));
   head.appendChild(txt("div", "celebrate-title", "Pro, unlocked."));
   head.appendChild(txt("p", "celebrate-thanks", IS_NATIVE
-    ? "Thank you for supporting Local Invoice. Pro is unlocked on this device — here's what you just turned on:"
-    : "Thank you for supporting Local Invoice. Pro is unlocked on this browser — here's what you just turned on:"));
+    ? "Thank you for supporting Local Invoice. Pro is unlocked on this device. Here's what you just turned on:"
+    : "Thank you for supporting Local Invoice. Pro is unlocked on this browser. Here's what you just turned on:"));
   modal.appendChild(head);
   const ul = el("ul", "celebrate-unlocked");
   [
     "Your custom logo & branding on every invoice and estimate PDF",
     "A “how to pay” block (bank / PayPal / Venmo) on every PDF",
-    "Payments & deposits — record partial payments and see the exact balance due on every invoice",
+    "Payments & deposits. Record partial payments and see the exact balance due on every invoice",
   ].forEach((t) => ul.appendChild(txt("li", null, t)));
   modal.appendChild(ul);
   // launchConfetti() call removed 2026-08-05 at Eden's request — it drew ON TOP of the
@@ -2058,16 +2058,16 @@ function showRestoreCodeModal(code) {
   const modal = el("div", "modal pro-modal license-modal");
   const firstTime = !hasCelebrated();
   if (firstTime) { appendCelebration(modal); markCelebrated(); }
-  modal.appendChild(txt("h3", null, firstTime ? "Save your restore code" : "You're Pro — save your restore code"));
-  modal.appendChild(txt("p", "hint", "Save this code and it'll unlock Pro again on any other device or browser — since Local Invoice has no accounts, it's your key to Pro."));
-  modal.appendChild(txt("p", "hint", "Keep your receipt email too — it's your proof of purchase. Questions? " + SUPPORT_EMAIL + "."));
+  modal.appendChild(txt("h3", null, firstTime ? "Save your restore code" : "You're Pro. Save your restore code"));
+  modal.appendChild(txt("p", "hint", "Save this code and it'll unlock Pro again on any other device or browser. Since Local Invoice has no accounts, it's your key to Pro."));
+  modal.appendChild(txt("p", "hint", "Keep your receipt email too. It's your proof of purchase. Questions? " + SUPPORT_EMAIL + "."));
   const codeBox = el("div", "restore-code-box");
-  const codeText = txt("code", "restore-code-value", code || "—");
+  const codeText = txt("code", "restore-code-value", code || "…");
   codeBox.appendChild(codeText);
   const copyBtn = txt("button", "btn ghost sm", "Copy"); copyBtn.type = "button";
   copyBtn.onclick = async () => {
     try { await navigator.clipboard.writeText(code); copyBtn.textContent = "Copied!"; }
-    catch { copyBtn.textContent = "Couldn't copy — select and copy manually"; }
+    catch { copyBtn.textContent = "Couldn't copy. Select and copy manually"; }
     setTimeout(() => { copyBtn.textContent = "Copy"; }, 2000);
   };
   codeBox.appendChild(copyBtn);
@@ -2098,7 +2098,7 @@ function showPaidNoCodeModal() {
     // Apple IAP has no restore CODE to mint — cross-device restore is handled by the
     // Apple ID + "Restore Purchases", so skip the mint section entirely.
     modal.appendChild(txt("h3", null, "You're Pro"));
-    modal.appendChild(txt("p", "hint", "Pro is unlocked on this device — and it restores free on your other Apple devices. Just tap “Restore Purchases” there, signed in with the same Apple Account."));
+    modal.appendChild(txt("p", "hint", "Pro is unlocked on this device, and it restores free on your other Apple devices. Just tap “Restore Purchases” there, signed in with the same Apple Account."));
     const doneBtn = txt("button", "btn big", "Done"); doneBtn.type = "button";
     doneBtn.onclick = () => { backdrop.remove(); refreshAfterProChange(); runPendingProIntent(); };
     const actions = el("div", "pro-actions"); actions.append(doneBtn);
@@ -2109,7 +2109,7 @@ function showPaidNoCodeModal() {
   }
   modal.appendChild(txt("h3", null, "You're Pro on this browser"));
   const note = el("div", "mint-note");
-  note.appendChild(txt("p", null, "One thing — we couldn't create your restore code just now. Pro already works on this browser. Tap to create your code for other devices."));
+  note.appendChild(txt("p", null, "One thing. We couldn't create your restore code just now. Pro already works on this browser. Tap to create your code for other devices."));
   const msgHost = el("div", "pro-msg");
   const mintBtn = txt("button", "btn big", "Create my restore code"); mintBtn.type = "button";
   mintBtn.onclick = async () => {
@@ -2122,7 +2122,7 @@ function showPaidNoCodeModal() {
       showRestoreCodeModal(res.restoreCode); // normal save-code modal
     } else {
       mintBtn.disabled = false; mintBtn.textContent = "Try again";
-      proStatus(msgHost, "No luck yet — Pro still works here; we'll offer again next visit, and " + SUPPORT_EMAIL + " + your receipt always work.", "warn");
+      proStatus(msgHost, "No luck yet. Pro still works here; we'll offer again next visit, and " + SUPPORT_EMAIL + " + your receipt always work.", "warn");
     }
   };
   note.appendChild(mintBtn);
@@ -2169,7 +2169,7 @@ function showLicenseCardModal() {
   const backdrop = el("div", "modal-backdrop");
   const modal = el("div", "modal pro-modal license-modal");
   modal.appendChild(txt("h3", null, "Your Pro license card"));
-  modal.appendChild(txt("p", "hint", "Download it, print it, or keep it with your records — it's the only way to unlock Pro again on another device."));
+  modal.appendChild(txt("p", "hint", "Download it, print it, or keep it with your records. It's the only way to unlock Pro again on another device."));
   const canvas = licenseCardCanvas(code);
   if (canvas) {
     modal.appendChild(canvas);
@@ -2258,7 +2258,7 @@ function maybeShowLicenseNag() {
   try { ack = localStorage.getItem(CODE_ACK_KEY); } catch { /* treat as un-acked */ }
   if (ack === "1" || $("#licenseNag")) return;
   const bar = el("div", "license-nag"); bar.id = "licenseNag";
-  bar.appendChild(txt("span", null, "Keep Pro safe — save your license card so you can restore it anytime."));
+  bar.appendChild(txt("span", null, "Keep Pro safe. Save your license card so you can restore it anytime."));
   const view = txt("button", "license-nag-view", "View card"); view.type = "button";
   view.onclick = () => showLicenseCardModal();
   const close = txt("button", "license-nag-x", "×"); close.type = "button";
@@ -2280,7 +2280,7 @@ function updateSelfHealNag() {
   if (!isPro || hasCode) { if (existing) existing.remove(); return; }
   if (existing) return; // already showing
   const bar = el("div", "license-nag selfheal-nag"); bar.id = "selfHealNag";
-  bar.appendChild(txt("span", null, "You're Pro on this browser — create your restore code so you can unlock other devices too."));
+  bar.appendChild(txt("span", null, "You're Pro on this browser. Create your restore code so you can unlock other devices too."));
   const btn = txt("button", "selfheal-nag-view", "Create code"); btn.type = "button";
   btn.onclick = async () => {
     btn.disabled = true; btn.textContent = "Creating…";
@@ -2344,7 +2344,7 @@ function renderUnlockProCard() {
 
   const card = el("button", "unlock-pro-card");
   card.type = "button";
-  card.setAttribute("aria-label", "Unlock Local Invoice Pro — $12.99 one-time");
+  card.setAttribute("aria-label", "Unlock Local Invoice Pro, $12.99 one-time");
 
   const head = el("div", "unlock-pro-head");
   // Crown glyph, tinted with the shared amber ramp (light + dark tokens).
@@ -2373,9 +2373,9 @@ function renderUnlockProCard() {
   // aria-label, and the mobile topbar button's label (its price is aria-only).
   applyNativePrice((p) => {
     priceLine.textContent = p + " · one-time";
-    card.setAttribute("aria-label", "Unlock Local Invoice Pro — " + p + " one-time");
+    card.setAttribute("aria-label", "Unlock Local Invoice Pro, " + p + " one-time");
     const tb = $("#unlockProTopbar");
-    if (tb) tb.setAttribute("aria-label", "Unlock Local Invoice Pro — " + p + " one-time");
+    if (tb) tb.setAttribute("aria-label", "Unlock Local Invoice Pro, " + p + " one-time");
   });
 
   slot.appendChild(card);
@@ -2400,20 +2400,20 @@ function showRestoreEntryModal() {
     goBtn.disabled = true; goBtn.textContent = "Checking…";
     let res;
     try { res = await Billing.restoreWithCode(formatRestoreCode(input.value)); }
-    catch (e) { console.error("Local Invoice: restoreWithCode threw", e); res = { ok: false, error: "Couldn't check that code — try again." }; }
+    catch (e) { console.error("Local Invoice: restoreWithCode threw", e); res = { ok: false, error: "Couldn't check that code. Try again." }; }
     if (res && res.ok) {
       close();
       updateFooterProLinks(); // the entered code is now stored — surface the license-card link
       updateSelfHealNag();
-      proToast("Welcome back — Pro is unlocked on this device.");
+      proToast("Welcome back. Pro is unlocked on this device.");
       refreshAfterProChange();
       runPendingProIntent(); // resume whatever gate sent them here (item 5)
     } else if (res && res.offline) {
       goBtn.disabled = false; goBtn.textContent = "Restore";
-      proStatus(msgHost, "You're offline — restoring Pro needs a connection to check your code. Everything else works offline.", "info");
+      proStatus(msgHost, "You're offline. Restoring Pro needs a connection to check your code. Everything else works offline.", "info");
     } else {
       goBtn.disabled = false; goBtn.textContent = "Restore";
-      status(msgHost, (res && res.error) || "Couldn't restore — try again.", "err");
+      status(msgHost, (res && res.error) || "Couldn't restore. Try again.", "err");
     }
   };
   const closeBtn = txt("button", "btn ghost", "Cancel"); closeBtn.type = "button";
@@ -2463,33 +2463,31 @@ function showProModal() {
   // Outcome-framed bullets (item 10).
   [
     "Your logo & branding on every invoice and estimate",
-    "Get paid faster — bank, PayPal & Venmo details right on every PDF",
-    "Record payments & deposits — log partial payments and always see the exact balance due on every invoice.",
+    "Get paid faster. Bank, PayPal & Venmo details right on every PDF",
+    "Record payments & deposits. Log partial payments and always see the exact balance due on every invoice.",
   ].forEach((f) => list.appendChild(txt("li", null, f)));
   modal.appendChild(list);
-  // Durable one-time reassurance line (item 10).
-  modal.appendChild(txt("p", "hint pro-reassure", "One-time unlock — it applies to every invoice and estimate you make from now on. No subscription, ever."));
   if (IS_NATIVE) {
     // Apple IAP: no Stripe, no email receipt, no "your statement" (Apple bills), no
     // self-run money-back (refunds go through Apple's Report a Problem).
-    modal.appendChild(txt("p", "hint pro-reassure", "Payment is handled securely by the App Store, with the Apple Account you already use — it restores free on your other Apple devices."));
+    modal.appendChild(txt("p", "hint pro-reassure", "Payment is handled securely by the App Store, with the Apple Account you already use. It restores free on your other Apple devices."));
   } else {
     // "(via RevenueCat)" because the checkout page's own header says "Secure checkout by
     // RevenueCat" — naming both here keeps that header from reading as a third stranger.
-    modal.appendChild(txt("p", "hint pro-reassure", "Secure checkout by Stripe (via RevenueCat). You'll enter an email for your receipt only — it's not an account, and we never see your card."));
+    modal.appendChild(txt("p", "hint pro-reassure", "Secure checkout by Stripe (via RevenueCat). You'll enter an email for your receipt only. It's not an account, and we never see your card."));
     {
       const stmtNote = document.createElement("p");
       stmtNote.style.cssText = "margin:12px 0 0; font-size:13.5px; font-weight:500;";
       stmtNote.innerHTML = 'Shows on your statement as <strong>“Eden Apps”</strong>';
       modal.appendChild(stmtNote);
     }
-    modal.appendChild(txt("p", "hint pro-reassure", "30-day money-back guarantee — email " + SUPPORT_EMAIL + "."));
+    modal.appendChild(txt("p", "hint pro-reassure", "30-day money-back guarantee. Email " + SUPPORT_EMAIL + "."));
     // Cross-store honesty, said BEFORE paying: this web unlock and the App Store app's
     // Pro are separate purchases — an iPhone-intending buyer should know that here.
     modal.appendChild(txt("p", "hint pro-reassure", "The iPhone and iPad app sells Pro separately through the App Store."));
     // Private-browsing safety (web only): when this browser can't save anything, Pro can't be
     // remembered here after purchase — one calm heads-up so the buyer keeps their keys safe.
-    if (!storageProbeOk()) modal.appendChild(txt("p", "hint pro-reassure", "Heads up — this browser isn't saving data, so keep your receipt and restore code somewhere safe after you buy."));
+    if (!storageProbeOk()) modal.appendChild(txt("p", "hint pro-reassure", "Heads up. This browser isn't saving data, so keep your receipt and restore code somewhere safe after you buy."));
   }
   const msgHost = el("div", "pro-msg");
 
@@ -2517,13 +2515,13 @@ function showProModal() {
     if (res && res.inFlight) {
       // A purchase from a moment ago is still settling (entitlement attaching). Don't open a
       // second checkout or show an error — reassure, and Pro unlocks itself when it lands.
-      proStatus(msgHost, "Your purchase is still going through — give it a moment and Pro will unlock automatically.", "info");
+      proStatus(msgHost, "Your purchase is still going through. Give it a moment and Pro will unlock automatically.", "info");
     } else if (res && res.cancelled) {
-      proStatus(msgHost, "No charge was made — Pro will be here whenever you're ready.", "info");
+      proStatus(msgHost, "No charge was made. Pro will be here whenever you're ready.", "info");
     } else if (res && res.offline) {
       // "no charge was made just now" scopes the claim to THIS click — someone who paid in an
       // earlier dead tab must never read this as "you were never charged".
-      proStatus(msgHost, "You're offline — buying Pro needs a connection for the secure checkout. Everything else works offline, and no charge was made just now.", "info");
+      proStatus(msgHost, "You're offline. Buying Pro needs a connection for the secure checkout. Everything else works offline, and no charge was made just now.", "info");
     } else if (res && res.pending) {
       // PAID — the charge SUCCEEDED; the entitlement is only still attaching (a few seconds).
       // Never show the "purchase didn't start / nothing was charged" card or a re-buy button to
@@ -2550,7 +2548,7 @@ function showProModal() {
       if (res && res.ok) { close(); refreshAfterProChange(); runPendingProIntent(); }
       else {
         restoreLink.disabled = false; restoreLink.textContent = prev;
-        proStatus(msgHost, "No previous purchase found. Make sure you're signed in with the Apple Account you bought Pro with. Bought on the web? Web and App Store purchases are separate — your code works in your browser.", "info");
+        proStatus(msgHost, "No previous purchase found. Make sure you're signed in with the Apple Account you bought Pro with. Bought on the web? Web and App Store purchases are separate. Your code works in your browser.", "info");
       }
     };
   } else {
@@ -2657,7 +2655,7 @@ function buildPreview() {
   draft.items.forEach((it) => {
     if (!it.description && !safeNumber(it.rate)) return;
     const tr = el("tr");
-    tr.append(txt("td", null, it.description || "—"), txt("td", "qty", String(safeNumber(it.qty))), txt("td", "num", money(safeNumber(it.qty) * safeNumber(it.rate), cur)));
+    tr.append(txt("td", null, it.description || "…"), txt("td", "qty", String(safeNumber(it.qty))), txt("td", "num", money(safeNumber(it.qty) * safeNumber(it.rate), cur)));
     tbody.appendChild(tr);
   });
   table.appendChild(tbody);
@@ -2695,7 +2693,7 @@ function buildPreview() {
     paidTr.append(txt("td", null, "Paid"), txt("td", "num", "−" + money(ps.paidToDate, cur)));
     tTable.appendChild(paidTr);
     const balTr = el("tr", "balance-row" + (ps.balanceDue <= 0 ? " settled" : ""));
-    balTr.append(txt("td", null, ps.balanceDue <= 0 ? "Balance due — paid in full" : "Balance due"), txt("td", "num", money(ps.balanceDue, cur)));
+    balTr.append(txt("td", null, ps.balanceDue <= 0 ? "Balance due (paid in full)" : "Balance due"), txt("td", "num", money(ps.balanceDue, cur)));
     tTable.appendChild(balTr);
   }
   totals.appendChild(tTable);
@@ -2775,7 +2773,7 @@ function doSave() {
     // only appears for invoices that exist on disk). Re-show the confirmation
     // after the rebuild, since buildEditor clears the message host.
     buildEditor();
-    status($("#editorMsg"), "Saved — this invoice lives only on this device.", "ok");
+    status($("#editorMsg"), "Saved. This invoice lives only on this device.", "ok");
   });
 }
 
@@ -2787,7 +2785,7 @@ function showPaymentUpsellNote(host) {
   if (existing) existing.remove();
   const note = el("div", "payment-upsell");
   note.setAttribute("role", "status");
-  note.appendChild(txt("span", null, "Your payment instructions weren't included — they're a Pro feature. "));
+  note.appendChild(txt("span", null, "Your payment instructions weren't included. They're a Pro feature. "));
   const link = txt("button", "restore-link payment-upsell-link", "Unlock Pro");
   link.type = "button";
   link.onclick = () => {
@@ -2861,7 +2859,7 @@ async function doExport() {
     // Estimate-only marker line so a printed estimate is never mistaken for a bill.
     if (isEstimate(draft)) {
       y -= 15;
-      page.drawText("ESTIMATE — NOT AN INVOICE", { x: 48, y, size: 9, font: bold, color: accent });
+      page.drawText("ESTIMATE · NOT AN INVOICE", { x: 48, y, size: 9, font: bold, color: accent });
     }
     y -= 40;
 
@@ -2885,7 +2883,7 @@ async function doExport() {
       if (!it.description && !safeNumber(it.rate)) return;
       if (ensureRoom(20)) drawItemsHeader(); // carry the item table onto a fresh page
       // 360pt keeps even the widest realistic descriptions clear of the Qty column at x=420.
-      const desc = fitText(reg, pdfSafe(it.description || "—"), 11, 360);
+      const desc = fitText(reg, pdfSafe(it.description || "…"), 11, 360);
       page.drawText(desc, { x: 48, y, size: 11, font: reg, color: ink });
       page.drawText(String(safeNumber(it.qty)), { x: 420, y, size: 11, font: reg, color: ink });
       const amt = pdfSafe(moneyPdf(safeNumber(it.qty) * safeNumber(it.rate), cur));
@@ -3009,7 +3007,7 @@ async function doExport() {
       const a = el("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
       document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 4000);
     }
-    status(msgHost, "PDF ready — saved to your downloads.", "ok");
+    status(msgHost, "PDF ready. Saved to your downloads.", "ok");
     // Free user who typed payment instructions: the export SUCCEEDED (never
     // blocked), but the block was left out. Surface a gentle inline upsell with a
     // one-click path into the Pro modal — shown after the success message so the
@@ -3052,11 +3050,11 @@ function exportVault() {
 
 function importVault(file) {
   const reader = new FileReader();
-  reader.onerror = () => showVaultError("Couldn't read that file — try again.");
+  reader.onerror = () => showVaultError("Couldn't read that file. Try again.");
   reader.onload = () => {
     let payload;
     try { payload = JSON.parse(String(reader.result)); }
-    catch { return showVaultError("That file doesn't look like a backup — it isn't valid JSON."); }
+    catch { return showVaultError("That file doesn't look like a backup. It isn't valid JSON."); }
     if (!payload || typeof payload !== "object" || payload.app !== VAULT_APP_ID) {
       const other = payload && typeof payload === "object" && typeof payload.app === "string" && payload.app ? payload.app : null;
       return showVaultError(other ? `That backup is from ${other}.` : "That file doesn't look like a Local Invoice backup.");
@@ -3072,7 +3070,7 @@ function importVault(file) {
       saveStateWithRetry((ok) => {
         draft = null; draftSnapshot = null; // any open editor draft belonged to the replaced data
         showHub();
-        showVaultToast(ok ? "Backup restored." : "Backup loaded — but it couldn't be saved to this browser (storage blocked or full).");
+        showVaultToast(ok ? "Backup restored." : "Backup loaded, but it couldn't be saved to this browser (storage blocked or full).");
         if (payload.proRestoreCode && !Billing.isPro()) {
           if (IS_NATIVE) {
             // No codes on iOS — a backup restores DATA only here. Never adopt the backup's
@@ -3086,7 +3084,7 @@ function importVault(file) {
               // backup didn't restore (wrong/refunded code, or servers unreachable). Never fail
               // silently and never touch the imported data: say so plainly, and open manual
               // restore-code entry so they can still unlock Pro.
-              showVaultToast("Your data imported, but Pro didn't restore from this backup — enter your restore code to unlock Pro.");
+              showVaultToast("Your data imported, but Pro didn't restore from this backup. Enter your restore code to unlock Pro.");
               try { showRestoreEntryModal(); } catch (e) { console.error("Local Invoice: restore entry open failed", e); }
             };
             Billing.restoreWithCode(payload.proRestoreCode).then((res) => {
@@ -3821,7 +3819,7 @@ function renderDashboard(host) {
   stats.appendChild(statTile("clock", "warn", "Outstanding", money(t.outstanding, t.cur), null, spark.outstanding, "amber"));
   host.appendChild(stats);
   if (multiCur) {
-    const hint = txt("p", "muted", `Showing ${t.cur.code}. Your book spans multiple currencies — amounts are never mixed.`);
+    const hint = txt("p", "muted", `Showing ${t.cur.code}. Your book spans multiple currencies. Amounts are never mixed.`);
     hint.style.cssText = "margin:-10px 0 16px;";
     host.appendChild(hint);
   }
@@ -3841,7 +3839,7 @@ function renderDashboard(host) {
     const art = sparklyDocArt(); art.classList.add("dash-empty-art");
     empty.appendChild(art);
     empty.appendChild(txt("p", null, "No invoices yet"));
-    empty.appendChild(txt("p", "muted", "Create your first one — it's saved right here on this device."));
+    empty.appendChild(txt("p", "muted", "Create your first one. It's saved right here on this device."));
     const cta = primaryBtn("+ Create invoice", () => openEditor(null));
     cta.style.marginTop = "12px";
     empty.appendChild(cta);
@@ -3959,7 +3957,7 @@ function buildInvoiceStatusCard() {
   const body = el("div", "status-card-body");
 
   if (!total) {
-    body.appendChild(txt("p", "muted", "No invoices yet — your status breakdown will appear here."));
+    body.appendChild(txt("p", "muted", "No invoices yet. Your status breakdown will appear here."));
     panel.appendChild(body);
     return panel;
   }
@@ -4090,8 +4088,8 @@ function buildDocRow(inv, isEstimateList) {
   tr.appendChild(cClient);
 
   // Date / due.
-  tr.appendChild(txt("td", "cell-muted", fmtDate(inv.date) || "—"));
-  tr.appendChild(txt("td", "cell-muted", fmtDate(inv.dueDate) || "—"));
+  tr.appendChild(txt("td", "cell-muted", fmtDate(inv.date) || "…"));
+  tr.appendChild(txt("td", "cell-muted", fmtDate(inv.dueDate) || "…"));
 
   // Status pill.
   const cStat = el("td");
@@ -4194,7 +4192,7 @@ function renderListView(host, kind) {
   if (!isEst) {
     const t = bookTotals();
     const stats = el("div", "stat-grid");
-    stats.appendChild(statTile("file", "", "Total invoiced", money(t.totalInvoiced, t.cur), `${t.count} invoices`));
+    stats.appendChild(statTile("file", "", "Total invoiced", money(t.totalInvoiced, t.cur), `${t.count} ${t.count === 1 ? "invoice" : "invoices"}`));
     stats.appendChild(statTile("fileCheck", "ok", "Paid", money(t.paid, t.cur), null));
     stats.appendChild(statTile("clock", "warn", "Outstanding", money(t.outstanding, t.cur), null));
     stats.appendChild(statTile("alert", "danger", "Overdue", money(t.overdue, t.cur), `${t.overdueCount} ${t.overdueCount === 1 ? "invoice" : "invoices"}`));
@@ -4278,7 +4276,7 @@ function fillListPanel(panel, kind) {
     empty.appendChild(art);
     if (total === 0) {
       empty.appendChild(txt("p", null, isEst ? "No estimates yet" : "No invoices yet"));
-      empty.appendChild(txt("p", "muted", "Create your first one — it's saved right here on this device."));
+      empty.appendChild(txt("p", "muted", "Create your first one. It's saved right here on this device."));
       const cta = primaryBtn(isEst ? "+ New estimate" : "+ New invoice", () => {
         if (isEst) openEditorAsEstimate();
         else { editorReturnRoute = "invoices"; openEditor(null); }
@@ -4301,7 +4299,7 @@ function fillListPanel(panel, kind) {
   panel.appendChild(buildDocTable(pageRows, isEst));
 
   const foot = el("div", "table-foot");
-  foot.appendChild(txt("div", "table-foot-info", `Showing ${start + 1}–${Math.min(start + PAGE_SIZE, rows.length)} of ${rows.length}`));
+  foot.appendChild(txt("div", "table-foot-info", `Showing ${start + 1} to ${Math.min(start + PAGE_SIZE, rows.length)} of ${rows.length}`));
   if (pages > 1) {
     const pager = el("div", "pager");
     const prev = el("button"); prev.type = "button"; prev.appendChild(icon("chevL", 15));
@@ -4414,7 +4412,7 @@ function renderClientList() {
     const art = icon("users"); art.classList.add("list-empty-art"); art.setAttribute("width", "56"); art.setAttribute("height", "56");
     empty.appendChild(art);
     empty.appendChild(txt("p", null, "No clients yet"));
-    empty.appendChild(txt("p", "muted", "Add a client with “+ New client”, or bill someone on an invoice — either way they'll appear here."));
+    empty.appendChild(txt("p", "muted", "Add a client with “+ New client”, or bill someone on an invoice. Either way they'll appear here."));
     panel.appendChild(empty);
     return;
   }
@@ -4440,7 +4438,7 @@ function renderClientList() {
     wrap.appendChild(av);
     wrap.appendChild(txt("div", "cell-client-name", c.name || "Unnamed client"));
     cName.appendChild(wrap); tr.appendChild(cName);
-    tr.appendChild(txt("td", "cell-muted", c.email || "—"));
+    tr.appendChild(txt("td", "cell-muted", c.email || "…"));
     tr.appendChild(txt("td", "num cell-amount", money(c.totalInvoiced, c.hasActivity ? c.currency : cur0)));
     tr.appendChild(txt("td", "num", money(c.outstanding, c.hasActivity ? c.currency : cur0)));
     tbody.appendChild(tr);
@@ -4457,7 +4455,7 @@ function showNewClientModal() {
   const backdrop = el("div", "modal-backdrop");
   const modal = el("div", "modal");
   modal.appendChild(txt("h3", null, "New client"));
-  modal.appendChild(txt("p", "hint", "Saved to this device only — they'll be pickable when you bill an invoice."));
+  modal.appendChild(txt("p", "hint", "Saved to this device only. They'll be pickable when you bill an invoice."));
 
   const form = el("div", "client-form");
   const draftClient = { name: "", email: "", phone: "", address: "" };
@@ -4707,7 +4705,7 @@ function renderSettingsView(host) {
       catch (e) { console.error("Local Invoice: restore threw", e); res = { ok: false }; }
       restoreLink.disabled = false; restoreLink.textContent = prev;
       if (res && res.ok) { refreshAfterProChange(); runPendingProIntent(); showVaultToast("Pro restored on this device."); }
-      else { showVaultToast("No previous purchase found for this Apple Account. Bought on the web? Web and App Store purchases are separate — your code works in your browser.", 9000); }
+      else { showVaultToast("No previous purchase found for this Apple Account. Bought on the web? Web and App Store purchases are separate. Your code works in your browser.", 9000); }
     };
   } else {
     restoreLink.onclick = () => showRestoreEntryModal();
@@ -4767,7 +4765,7 @@ function pickSettingsLogo() {
   input.onchange = () => {
     const file = input.files && input.files[0];
     if (!file) return;
-    if (file.size > MAX_LOGO_BYTES) { alert("That image is too large — please use one under 2MB."); return; }
+    if (file.size > MAX_LOGO_BYTES) { alert("That image is too large. Please use one under 2MB."); return; }
     const reader = new FileReader();
     reader.onload = () => { state.business.logo = String(reader.result); saveState(); renderSettingsView($("#view-settings")); };
     reader.readAsDataURL(file);
@@ -4867,7 +4865,7 @@ renderUnlockProCard(); // seed the sidebar "Unlock Pro" door (removes itself for
     if (res && res.ok) {
       updateFooterProLinks();
       updateSelfHealNag();
-      proToast("Welcome back — Pro is unlocked on this device.");
+      proToast("Welcome back. Pro is unlocked on this device.");
       refreshAfterProChange();
     } else {
       // Couldn't restore from the scan (offline, refunded, or an odd code) — open
@@ -4902,7 +4900,7 @@ renderUnlockProCard(); // seed the sidebar "Unlock Pro" door (removes itself for
       box.appendChild(txt("div", "restore-code-value", existing));
       modal.appendChild(box);
       modal.appendChild(txt("p", "hint",
-        "The link you opened restores a different code. Switching replaces the code saved on this device — if you haven't saved your license card, the current code can't be recovered here."));
+        "The link you opened restores a different code. Switching replaces the code saved on this device. If you haven't saved your license card, the current code can't be recovered here."));
     } else {
       modal.appendChild(txt("p", "hint",
         "Pro is already unlocked on this device, but no restore code has been saved here yet. The link you opened would move this device onto a different purchase, and this one would be lost. Keep this device's Pro and save a code for it from the Pro menu."));

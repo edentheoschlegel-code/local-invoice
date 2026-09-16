@@ -4,8 +4,8 @@
   <meta charset="UTF-8">
   <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://da08ctfrofx1b.cloudfront.net; font-src 'self'; connect-src 'self' https://api.revenuecat.com https://e.revenue.cat https://js.stripe.com; worker-src 'self' blob:; frame-src https://js.stripe.com; child-src 'self' blob:; object-src 'none'; base-uri 'self'; form-action 'none'">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <title>Local Invoice — Private Invoice Maker</title>
-  <meta name="description" content="Create and send professional invoices right on your device. Your clients, line items, and income never leave your device — no uploads, no accounts, no cross-app tracking.">
+  <title>Local Invoice: Private Invoice Maker</title>
+  <meta name="description" content="Create and send professional invoices right on your device. Your clients, line items, and income never leave your device. No uploads, no accounts, no cross-app tracking.">
   <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
   <link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="assets/favicon-16.png">
@@ -18,19 +18,19 @@
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="Local Invoice">
   <meta property="og:url" content="https://localinvoiceapp.com/">
-  <meta property="og:title" content="Local Invoice — Private invoices that never leave your device">
-  <meta property="og:description" content="Create and send professional invoices right on your device. Your clients, line items, and income never leave your device — no uploads, no accounts, no cross-app tracking.">
+  <meta property="og:title" content="Local Invoice: Private invoices that never leave your device">
+  <meta property="og:description" content="Create and send professional invoices right on your device. Your clients, line items, and income never leave your device. No uploads, no accounts, no cross-app tracking.">
   <meta property="og:image" content="https://localinvoiceapp.com/assets/og-image.png">
   <meta property="og:image:width" content="1200">
   <meta property="og:image:height" content="630">
-  <meta property="og:image:alt" content="Local Invoice — private, on your device">
+  <meta property="og:image:alt" content="Local Invoice: private, on your device">
   <meta name="twitter:card" content="summary_large_image">
-  <meta name="twitter:title" content="Local Invoice — Private invoices that never leave your device">
-  <meta name="twitter:description" content="Create and send professional invoices right on your device. Your clients, line items, and income never leave your device — no uploads, no accounts, no cross-app tracking.">
+  <meta name="twitter:title" content="Local Invoice: Private invoices that never leave your device">
+  <meta name="twitter:description" content="Create and send professional invoices right on your device. Your clients, line items, and income never leave your device. No uploads, no accounts, no cross-app tracking.">
   <meta name="twitter:image" content="https://localinvoiceapp.com/assets/og-image.png">
   <!-- Applies the saved theme before first paint (external file to satisfy the strict CSP). -->
-  <script src="theme-init.js?v=76123a6081"></script>
-  <link rel="stylesheet" href="styles.css?v=76123a6081">
+  <script src="theme-init.js?v=04b56ae59d"></script>
+  <link rel="stylesheet" href="styles.css?v=04b56ae59d">
   <script type="application/ld+json">{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Local Invoice","url":"https://localinvoiceapp.com/","description":"Create and send professional invoices right on your device. Your clients, line items, and income never leave your device — no uploads, no accounts, no cross-app tracking.","applicationCategory":"FinanceApplication","operatingSystem":"Web, iOS","isAccessibleForFree":true,"browserRequirements":"Requires JavaScript. Runs on your device — no account, no upload.","publisher":{"@type":"Organization","name":"Local Invoice"}}</script>
 </head>
 <body>
@@ -38,7 +38,7 @@
   <div class="app-shell">
     <!-- ── Sidebar nav ─────────────────────────────────────────────── -->
     <aside class="sidebar" id="sidebar">
-      <div class="sidebar-brand" id="logo" role="button" tabindex="0" aria-label="Local Invoice — go to dashboard">
+      <div class="sidebar-brand" id="logo" role="button" tabindex="0" aria-label="Local Invoice: go to dashboard">
         <img src="assets/brand-icon-512.png" alt="Local Invoice logo" class="brand-logo" width="30" height="30">
         <div class="sidebar-brand-text">
           <b>Local <span class="wordmark-accent">Invoice</span></b>
@@ -90,7 +90,7 @@
           <svg aria-hidden="true" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg>
         </button>
         <div class="topbar-right">
-          <button type="button" id="unlockProTopbar" class="topbar-unlock-pro pro-owned" aria-label="Unlock Local Invoice Pro — $12.99 one-time">
+          <button type="button" id="unlockProTopbar" class="topbar-unlock-pro pro-owned" aria-label="Unlock Local Invoice Pro, $12.99 one-time">
             <svg viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 7l4.5 3.5L12 4l4.5 6.5L21 7l-1.8 11H4.8L3 7zm2 13h14v1.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5V20z"/></svg>
             <span>Unlock Pro</span>
           </button>
@@ -131,7 +131,7 @@
             <div id="invoiceList" class="invoice-list"></div>
             <div id="emptyState" class="empty hidden">
               <p>No invoices yet.</p>
-              <p class="muted">Create your first one — it's saved right here on this device.</p>
+              <p class="muted">Create your first one. It's saved right here on this device.</p>
             </div>
           </div>
         </div>
@@ -143,7 +143,7 @@
         <div id="editor" class="editor hidden"></div>
 
         <footer>
-          Local Invoice — a private invoice maker that runs on your device.<br>
+          Local Invoice. A private invoice maker that runs on your device.<br>
           Not legal, tax, or accounting advice.<br>
           Built with <a href="https://pdf-lib.js.org" target="_blank" rel="noopener">pdf-lib</a>, bundled locally.<br>
           <a href="privacy.html">Privacy Policy</a> · <a href="https://edenapps.app/terms.html" target="_blank" rel="noopener">Terms</a> · <a href="support.html">Help</a><br>
@@ -163,7 +163,7 @@
   </div>
 
   <!-- pdf-lib is lazy-loaded on first PDF export (see ensurePdfLib in app.js) -->
-  <script src="billing.js?v=76123a6081"></script>
-  <script src="app.js?v=76123a6081"></script>
+  <script src="billing.js?v=04b56ae59d"></script>
+  <script src="app.js?v=04b56ae59d"></script>
 </body>
 </html>
