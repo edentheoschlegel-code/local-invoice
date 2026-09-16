@@ -3002,12 +3002,15 @@ async function doExport() {
       const { Filesystem } = window.Capacitor.Plugins;
       const { Share } = window.Capacitor.Plugins;
       const base64 = await new Promise((res) => { const r = new FileReader(); r.onload = () => res(String(r.result).split(",")[1]); r.readAsDataURL(blob); });
-      await writeAndShareNative(Filesystem, Share, filename, base64);
+      // false = the share sheet was closed without choosing anywhere. Not a
+      // failure and not a save, so nothing is said at all (no success, no error).
+      if (!(await writeAndShareNative(Filesystem, Share, filename, base64))) return;
     } else {
       const a = el("a"); a.href = url; a.download = filename; document.body.appendChild(a); a.click();
       document.body.removeChild(a); setTimeout(() => URL.revokeObjectURL(url), 4000);
     }
-    status(msgHost, "PDF ready. Saved to your downloads.", "ok");
+    // iPhone: the share sheet decides where the PDF goes, so no downloads claim.
+    status(msgHost, IS_NATIVE ? "PDF ready." : "PDF ready. Saved to your downloads.", "ok");
     // Free user who typed payment instructions: the export SUCCEEDED (never
     // blocked), but the block was left out. Surface a gentle inline upsell with a
     // one-click path into the Pro modal — shown after the success message so the
@@ -3021,14 +3024,93 @@ async function doExport() {
 // Defensive retry for a genuinely transient native-bridge hiccup (disk
 // contention, a slow first native call) — retry the whole write+share
 // sequence once after a short delay before giving up and showing an error.
+// Returns true when the PDF was handed off, false when the share sheet was
+// closed without choosing a destination (never retried: a retry would reopen
+// the sheet the person just closed).
 async function writeAndShareNative(Filesystem, Share, filename, base64, isRetry) {
+  nativeExportStarted = true; // the launch sweep stands down from here on (see sweepExportCache)
   try {
-    const { uri } = await Filesystem.writeFile({ path: filename, data: base64, directory: "CACHE" });
-    await Share.share({ title: filename, files: [uri] });
+    // Two exports of the same invoice can overlap (iOS refuses the second share
+    // while the first sheet is still open), so the copy is removed only when the
+    // last export using this name lets go, never from under a sheet still open.
+    pdfCopiesInUse.set(filename, (pdfCopiesInUse.get(filename) || 0) + 1);
+    try {
+      const { uri } = await Filesystem.writeFile({ path: filename, data: base64, directory: "CACHE" });
+      await Share.share({ title: filename, files: [uri] });
+    } finally {
+      // The share sheet copies the PDF into whatever destination is chosen, so
+      // once it has settled (shared, dismissed, or failed) this app's own copy
+      // in the cache has no further job. Removing it here, before any retry
+      // below writes it again, is what keeps finished invoices from sitting on
+      // the device afterwards. Cleanup is silent by design: a delete that does
+      // not succeed is not a failed export, so it never replaces the share's
+      // own result or error. The launch sweep catches any copy this misses.
+      const left = (pdfCopiesInUse.get(filename) || 1) - 1;
+      if (left > 0) pdfCopiesInUse.set(filename, left);
+      else {
+        pdfCopiesInUse.delete(filename);
+        try { await Filesystem.deleteFile({ path: filename, directory: "CACHE" }); } catch (e) {}
+      }
+    }
+    return true;
   } catch (e) {
+    // @capacitor/share (iOS) rejects with exactly "Share canceled" when the sheet
+    // is dismissed. That one rejection is a quiet no-op; the finally above has
+    // already removed the cache copy. Every other rejection is a real failure.
+    if (e && e.message === "Share canceled") return false;
     if (isRetry) throw e;
     await new Promise((r) => setTimeout(r, 400));
     return writeAndShareNative(Filesystem, Share, filename, base64, true);
+  }
+}
+
+// ── Cache sweep (native only) ────────────────────────────────────────────
+// writeAndShareNative() removes each PDF as soon as the share sheet is done
+// with it, so in the ordinary run of things nothing is left behind. A copy can
+// still outlive that (iOS can put the app away mid-share, or a delete can
+// simply not succeed), so once per launch we look for those stragglers and
+// clear them.
+//
+// Deliberately NOT a blanket clear of the cache directory. It considers only
+// plain files at the top level of that directory, which is the one place
+// writeAndShareNative() writes, and among those only the names doExport()
+// itself builds: "invoice-0001.pdf" or "estimate-EST-0001.pdf" (the number
+// part is invoiceNumberLabel() without its "#"). Anything else in there (the
+// web engine's own caches, any subdirectory, any other file) is left alone.
+// It also stands down as soon as an export has started this session, so it
+// can never pull a file out from under an open share sheet.
+//
+// Best effort from end to end: every step is guarded, and a sweep that cannot
+// run costs nothing. The web never writes such a file, so it never runs there.
+const EXPORT_FILE_NAME = /^(?:invoice|estimate-EST)-[0-9.e+-]+\.pdf$/;
+let nativeExportStarted = false;
+// filename -> how many writeAndShareNative() calls are still using that cache copy.
+const pdfCopiesInUse = new Map();
+
+async function sweepExportCache() {
+  if (!IS_NATIVE) return;
+  // Only a fresh launch sweeps. iOS can restart the web view's own process (it
+  // reloads the page) while the app, and any share sheet or Files picker it has
+  // open, stays alive; that sheet may still need its file, and what this page knew
+  // about it is gone. A copy skipped here is cleared at the next launch.
+  try {
+    const nav = performance.getEntriesByType ? performance.getEntriesByType("navigation")[0] : null;
+    if (nav ? nav.type !== "navigate" : (performance.navigation && performance.navigation.type !== 0)) return;
+  } catch (e) {}
+  const Filesystem = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Filesystem;
+  if (!Filesystem) return;
+  let listing;
+  try { listing = await Filesystem.readdir({ path: "", directory: "CACHE" }); }
+  catch (e) { return; }
+  const entries = listing && Array.isArray(listing.files) ? listing.files : [];
+  for (const entry of entries) {
+    if (nativeExportStarted) return;
+    // Capacitor 7 returns {name, type, ...}; the string form is what older
+    // versions of this plugin returned, kept so a shape change cannot throw.
+    const name = typeof entry === "string" ? entry : String((entry && entry.name) || "");
+    const isDir = typeof entry === "string" ? false : (entry && entry.type) === "directory";
+    if (isDir || !EXPORT_FILE_NAME.test(name)) continue;
+    try { await Filesystem.deleteFile({ path: name, directory: "CACHE" }); } catch (e) {}
   }
 }
 
@@ -4805,6 +4887,16 @@ maybeShowRecurringPrompts(); // scan recurring invoices; surface "time to bill a
 updateFooterProLinks();
 maybeShowLicenseNag();
 renderUnlockProCard(); // seed the sidebar "Unlock Pro" door (removes itself for owners)
+// Clear any invoice PDF a previous run left in the cache. Native-only and a
+// no-op on the web; queued behind load and started in its own task, so it can
+// never hold up the first paint or anything else at boot.
+if (IS_NATIVE) {
+  try {
+    const startSweep = () => { setTimeout(() => { sweepExportCache().catch(() => {}); }, 0); };
+    if (document.readyState === "complete") startSweep();
+    else window.addEventListener("load", startSweep, { once: true });
+  } catch (e) {}
+}
 
 // ── Boot entitlement check (item 1) ────────────────────────────────────────
 // Only browsers that MIGHT already own Pro make a billing network call at boot
