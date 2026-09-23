@@ -1131,6 +1131,8 @@ select option { color: var(--ink); background: var(--card); }
 .sp-recent-row .num { font-weight: 700; font-size: 12.5px; }
 .sp-recent-row .amt { font-weight: 800; font-size: 12.5px; }
 .side-panel .btn { width: 100%; margin-top: 16px; }
+.side-panel-head .btn { width: auto; margin: 0 0 0 auto; flex-shrink: 0; }
+.client-linked-note { margin: -6px 0 14px; }
 .side-panel-empty { text-align: center; color: var(--muted); padding: 40px 16px; }
 .side-panel-empty svg { width: 44px; height: 44px; color: var(--brand-light); margin-bottom: 10px; }
 

@@ -381,6 +381,10 @@ function blankInvoice() {
     shipping: safeNumber(b.shipping),
     currency: sanitizeCurrency(b.currency),
     recurring: { enabled: false, interval: "monthly", anchorDate: "", lastGenerated: "" },
+    // Start with the same empty payments list buildPaymentsPanel would add on
+    // first render — otherwise an untouched new invoice reads as "dirty" and the
+    // back button asks about unsaved changes the user never made.
+    payments: [],
     createdAt: Date.now(),
   };
 }
@@ -1160,6 +1164,15 @@ function leaveEditor() {
 function openEditor(invoiceId) {
   const existing = invoiceId ? state.invoices.find((i) => i.id === invoiceId) : null;
   draft = existing ? JSON.parse(JSON.stringify(existing)) : blankInvoice();
+  // A saved DRAFT with no payment instructions picks up the business default
+  // (Settings → Business profile → Payment details) so "how to pay" really does
+  // reach every invoice, not only the ones created after the default was set.
+  // Sent and paid documents are records and load exactly as saved. Runs before
+  // markClean so the prefill alone never triggers the unsaved-changes prompt.
+  if (existing && draft.status === "draft" && !(draft.paymentDetails || "").trim()) {
+    const def = state.business && typeof state.business.paymentDetails === "string" ? state.business.paymentDetails : "";
+    if (def.trim()) draft.paymentDetails = def;
+  }
   markClean();
   buildEditor();
   enterEditorView();
@@ -1199,9 +1212,9 @@ function buildEditor() {
   // ── From ──
   const fromPanel = el("div", "panel");
   fromPanel.appendChild(txt("h3", null, "From"));
-  fromPanel.appendChild(field("Your name / business", draft.from.name, (v) => { draft.from.name = v; state.business.name = v; refresh(); }));
-  fromPanel.appendChild(field("Email", draft.from.email, (v) => { draft.from.email = v; state.business.email = v; refresh(); }));
-  fromPanel.appendChild(field("Address", draft.from.address, (v) => { draft.from.address = v; state.business.address = v; refresh(); }, true));
+  fromPanel.appendChild(field("Your name / business", draft.from.name, (v) => { draft.from.name = v; state.business.name = v; refresh(); persistBusinessDefaultsSoon(); }));
+  fromPanel.appendChild(field("Email", draft.from.email, (v) => { draft.from.email = v; state.business.email = v; refresh(); persistBusinessDefaultsSoon(); }));
+  fromPanel.appendChild(field("Address", draft.from.address, (v) => { draft.from.address = v; state.business.address = v; refresh(); persistBusinessDefaultsSoon(); }, true));
   fromPanel.appendChild(buildLogoField());
   fromPanel.appendChild(buildPaymentDetailsField());
   formCol.appendChild(fromPanel);
@@ -1668,6 +1681,19 @@ function buildLogoField() {
   wrap.appendChild(row);
   return wrap;
 }
+// Persist the business-level defaults the editor dual-writes (From fields,
+// payment details) WITHOUT waiting for the invoice itself to be saved. Before
+// this, someone who typed their bank details, exported the PDF and left without
+// pressing Save lost the default and had to retype it on the next invoice —
+// the first App Store review described exactly that. Debounced so a burst of
+// keystrokes is one localStorage write. Silent on failure: doSave and Settings
+// surface storage errors on their own, and the draft itself is untouched here
+// (an existing invoice's saved copy in state.invoices is separate from `draft`).
+let businessPersistTimer = null;
+function persistBusinessDefaultsSoon() {
+  clearTimeout(businessPersistTimer);
+  businessPersistTimer = setTimeout(() => { saveState(); }, 400);
+}
 // ── Payment instructions (Pro on the PDF; free to type + preview) ─────────
 // A multiline "How to pay" free-text field on state.business. FREE users can
 // enter and preview it (with a "Pro" tag) — it only renders into the EXPORTED
@@ -1687,9 +1713,9 @@ function buildPaymentDetailsField() {
   // livePreviewUpdate() (used by the line-item inputs) rebuilds the preview column
   // in place — it's a module-level helper, so unlike the buildEditor-scoped
   // refresh() it's safely in scope from this standalone builder.
-  area.oninput = () => { draft.paymentDetails = area.value; state.business.paymentDetails = area.value; livePreviewUpdate(); };
+  area.oninput = () => { draft.paymentDetails = area.value; state.business.paymentDetails = area.value; livePreviewUpdate(); persistBusinessDefaultsSoon(); };
   wrap.appendChild(area);
-  wrap.appendChild(txt("p", "field-hint", "Shown on your invoice PDF with Pro. You can type and preview it free."));
+  wrap.appendChild(txt("p", "field-hint", "Saved as your default for new invoices. Set it once in Settings → Business profile. Shown on the PDF with Pro."));
   return wrap;
 }
 function pickLogoFile() {
@@ -4419,10 +4445,13 @@ function deriveClients() {
   const map = new Map();
   const ensure = (name, email, address) => {
     const key = clientKey(name, email);
-    if (!map.has(key)) map.set(key, { key, name: (name || "").trim(), email: (email || "").trim(), address: address || "", totalInvoiced: 0, outstanding: 0, paid: 0, invoices: [], currency: DEFAULT_CURRENCY, hasActivity: false });
+    if (!map.has(key)) map.set(key, { key, name: (name || "").trim(), email: (email || "").trim(), phone: "", address: address || "", totalInvoiced: 0, outstanding: 0, paid: 0, invoices: [], currency: DEFAULT_CURRENCY, hasActivity: false });
     return map.get(key);
   };
-  (state.clients || []).forEach((c) => ensure(c.name, c.email, c.address));
+  (state.clients || []).forEach((c) => {
+    const rec = ensure(c.name, c.email, c.address);
+    if (typeof c.phone === "string") rec.phone = c.phone.trim(); // address-book only; invoices never carry phone
+  });
   state.invoices.forEach((inv) => {
     if (isEstimate(inv)) return; // estimates aren't billed income
     const name = (inv.billTo.name || "").trim();
@@ -4528,49 +4557,78 @@ function renderClientList() {
   table.appendChild(tbody); scroll.appendChild(table); panel.appendChild(scroll);
 }
 
-// Direct "add a client" path. Writes a sanitized client into state.clients (the
-// SAME address book deriveClients() reads and the editor's saved-client picker
-// offers), so no schema change is needed. De-dupes on name+email exactly like
-// the invoice-save auto-append (doSave), so adding a client that already exists
-// just selects them instead of creating a duplicate.
-function showNewClientModal() {
+// Add-or-edit client dialog. `existing` is a deriveClients() record, or null
+// for a brand-new client. Both paths write the SAME state.clients address book
+// that deriveClients() reads and the editor's saved-client picker offers, so no
+// schema change is needed. De-dupes on name+email exactly like the invoice-save
+// auto-append (doSave). Editing also rewrites the Bill-to block on every saved
+// document billed to the old name+email: the roster is keyed on that pair, so
+// leaving old invoices behind would split one client into two rows. PDFs
+// already exported are files on disk and are untouched. A client that only
+// exists on invoices (no address-book entry) is promoted into the book on save.
+function showClientModal(existing) {
+  const isEdit = !!existing;
   const backdrop = el("div", "modal-backdrop");
   const modal = el("div", "modal");
-  modal.appendChild(txt("h3", null, "New client"));
-  modal.appendChild(txt("p", "hint", "Saved to this device only. They'll be pickable when you bill an invoice."));
+  modal.appendChild(txt("h3", null, isEdit ? "Edit client" : "New client"));
+  modal.appendChild(txt("p", "hint", isEdit
+    ? "Stays on this device. Changes apply wherever this client is picked."
+    : "Saved to this device only. They'll be pickable when you bill an invoice."));
 
   const form = el("div", "client-form");
-  const draftClient = { name: "", email: "", phone: "", address: "" };
-  form.appendChild(field("Name", "", (v) => { draftClient.name = v; }));
-  form.appendChild(field("Email", "", (v) => { draftClient.email = v; }));
-  form.appendChild(field("Phone", "", (v) => { draftClient.phone = v; }));
-  form.appendChild(field("Billing address", "", (v) => { draftClient.address = v; }, true));
+  const draftClient = {
+    name: isEdit ? existing.name : "",
+    email: isEdit ? existing.email : "",
+    phone: isEdit ? existing.phone || "" : "",
+    address: isEdit ? existing.address || "" : "",
+  };
+  form.appendChild(field("Name", draftClient.name, (v) => { draftClient.name = v; }));
+  form.appendChild(field("Email", draftClient.email, (v) => { draftClient.email = v; }));
+  form.appendChild(field("Phone", draftClient.phone, (v) => { draftClient.phone = v; }));
+  form.appendChild(field("Billing address", draftClient.address, (v) => { draftClient.address = v; }, true));
   modal.appendChild(form);
 
-  const msgHost = el("div"); msgHost.id = "newClientMsg";
+  // Saved documents (invoices AND estimates) billed to this client, by key.
+  const linked = isEdit ? state.invoices.filter((inv) => clientKey(inv.billTo.name, inv.billTo.email) === existing.key) : [];
+  if (linked.length) {
+    modal.appendChild(txt("p", "field-hint client-linked-note",
+      `Saving also updates the Bill-to details on ${linked.length} ${linked.length === 1 ? "document" : "documents"} already billed to this client. PDFs you've exported aren't changed.`));
+  }
+
+  const msgHost = el("div"); msgHost.id = "clientModalMsg";
 
   const close = () => { cleanup(); backdrop.remove(); };
   const actions = el("div", "pro-actions");
   const cancelBtn = txt("button", "btn ghost", "Cancel"); cancelBtn.type = "button";
   cancelBtn.onclick = close;
-  const saveBtn = txt("button", "btn", "Add client"); saveBtn.type = "button";
+  const saveBtn = txt("button", "btn", isEdit ? "Save changes" : "Add client"); saveBtn.type = "button";
   saveBtn.onclick = () => {
     const name = (draftClient.name || "").trim();
     if (!name) { status(msgHost, "A client needs a name.", "err"); return; }
     const email = (draftClient.email || "").trim();
     const phone = (draftClient.phone || "").trim();
     const address = (draftClient.address || "").trim();
-    // De-dupe on name+email (case-insensitive), mirroring doSave's auto-append.
-    const existing = state.clients.find((c) =>
-      (c.name || "").trim().toLowerCase() === name.toLowerCase() &&
-      (c.email || "").trim().toLowerCase() === email.toLowerCase());
-    if (!existing) {
+    const newKey = clientKey(name, email);
+    const lookupKey = isEdit ? existing.key : newKey;
+    const savedIdx = state.clients.findIndex((c) => clientKey(c.name, c.email) === lookupKey);
+    if (isEdit) {
+      // Renaming onto ANOTHER client's name+email would silently merge two
+      // people's history. Refuse and let the user choose a different name/email.
+      if (newKey !== existing.key && deriveClients().some((c) => c.key === newKey)) {
+        status(msgHost, "Another client already uses that name and email.", "err"); return;
+      }
+      const entry = { name, email, phone, address };
+      if (savedIdx >= 0) state.clients[savedIdx] = { ...state.clients[savedIdx], ...entry };
+      else state.clients.push(entry);
+      linked.forEach((inv) => { inv.billTo = { ...inv.billTo, name, email, address }; });
+      if (!saveState()) { status(msgHost, friendly(lastSaveError), "err"); return; }
+    } else if (savedIdx < 0) {
       state.clients.push({ name, email, phone, address });
       if (!saveState()) { status(msgHost, friendly(lastSaveError), "err"); return; }
     }
-    selectedClientKey = clientKey(name, email);
+    selectedClientKey = newKey;
     close();
-    // Re-render the Clients view so the new client shows and is selected.
+    // Re-render the Clients view so the change shows and the client stays selected.
     const host = $("#view-clients");
     if (host) { host.innerHTML = ""; renderClientsView(host); }
   };
@@ -4583,6 +4641,7 @@ function showNewClientModal() {
   document.body.appendChild(backdrop);
   const cleanup = makeDialog(backdrop, modal, close);
 }
+function showNewClientModal() { showClientModal(null); }
 
 function renderClientDetail() {
   const panel = $("#clientSidePanel");
@@ -4603,6 +4662,11 @@ function renderClientDetail() {
   ht.appendChild(txt("div", "sp-name", client.name || "Unnamed client"));
   ht.appendChild(txt("div", "sp-sub", client.hasActivity ? `${client.invoices.length} ${client.invoices.length === 1 ? "invoice" : "invoices"}` : "No invoices yet"));
   head.appendChild(ht);
+  // Edit lives beside the name so it's the first thing seen — the one place
+  // people look for it. Works for address-book AND invoice-only clients.
+  const editBtn = ghostBtn("Edit", () => showClientModal(client));
+  editBtn.setAttribute("aria-label", `Edit ${client.name || "client"}`);
+  head.appendChild(editBtn);
   panel.appendChild(head);
 
   // Contact.
@@ -4612,7 +4676,11 @@ function renderClientDetail() {
     const row = el("div", "sp-row"); row.appendChild(icon("mail", 15)); row.appendChild(txt("span", null, client.email));
     contact.appendChild(row);
   }
-  if (!client.email && !client.address) contact.appendChild(txt("p", "muted", "No contact details on file yet."));
+  if (client.phone) {
+    const row = el("div", "sp-row"); row.appendChild(icon("phone", 15)); row.appendChild(txt("span", null, client.phone));
+    contact.appendChild(row);
+  }
+  if (!client.email && !client.phone && !client.address) contact.appendChild(txt("p", "muted", "No contact details on file yet."));
   panel.appendChild(contact);
 
   // Billing address.
@@ -4704,6 +4772,7 @@ function renderSettingsView(host) {
   biz.appendChild(settingsField("Business name", state.business.name || "", (v) => { state.business.name = v; saveState(); }));
   biz.appendChild(settingsField("Email", state.business.email || "", (v) => { state.business.email = v; saveState(); }));
   biz.appendChild(settingsField("Address", state.business.address || "", (v) => { state.business.address = v; saveState(); }, true));
+  biz.appendChild(buildSettingsPaymentDetails());
   // Logo (respects the Pro gate — reuses buildLogoField machinery via a settings draft).
   biz.appendChild(buildSettingsLogo());
   leftCol.appendChild(biz);
@@ -4798,6 +4867,27 @@ function renderSettingsView(host) {
 
   grid.append(leftCol, rightCol);
   host.appendChild(grid);
+}
+// Settings home for the "how to pay" default. It was only ever reachable from
+// the editor's From panel, so users read it as a per-invoice text box they had
+// to fill in every time. Writes the same state.business.paymentDetails that
+// blankInvoice prefills, openEditor backfills into empty drafts, and the editor
+// dual-writes — nothing changes shape; the default finally has a front door.
+function buildSettingsPaymentDetails() {
+  const wrap = el("div", "field");
+  const labelRow = el("div", "field-label-row");
+  labelRow.appendChild(txt("span", "field-label", "Payment details"));
+  labelRow.appendChild(txt("span", "pro-tag", "Pro"));
+  wrap.appendChild(labelRow);
+  const area = el("textarea");
+  area.setAttribute("aria-label", "Payment details");
+  area.value = state.business.paymentDetails || "";
+  area.rows = 4; // bank details are usually 3-4 lines; show them without scrolling
+  area.placeholder = "How clients pay you. Bank details, PayPal.me link, Venmo handle…";
+  area.addEventListener("input", () => { state.business.paymentDetails = area.value; saveState(); });
+  wrap.appendChild(area);
+  wrap.appendChild(txt("p", "field-hint", "Added to every new invoice and estimate, and to saved drafts that don't have their own yet. Printed on the PDF with Pro."));
+  return wrap;
 }
 function settingsField(label, value, onChange, isTextarea) {
   const wrap = el("div", "field");

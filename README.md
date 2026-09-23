@@ -23,7 +23,6 @@ Serve the folder with any static file server, e.g. `npx serve .`
 This repository contains the deployed build; the app is developed in a private monorepo.
 
 ## License
-
 Copyright (c) 2026 Eden Apps. All rights reserved.
 
 This is not open-source software. Please do not copy, modify or redistribute it without written permission from Eden Apps. Bundled third-party code keeps its own licenses: see `THIRD-PARTY-LICENSES.txt`.
