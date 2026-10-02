@@ -1768,7 +1768,7 @@ function refreshAfterProChange() {
 // Builds a mailto: link that pre-fills a warm, short email to support with the
 // person's restore code auto-inserted (or a clear "no code" note if null). A real
 // person reviews and processes the refund back to the original payment method.
-const REFUND_EXPECTATION = "30-day money-back guarantee. Email us and a real person reviews it. No forms, no runaround. Once approved, your refund goes back to your original payment method and takes about 5 to 10 business days to appear on your statement.";
+const REFUND_EXPECTATION = "30-day money-back guarantee. Email us and a real person reviews it. No forms, no runaround. Once approved, your refund goes back to your original payment method. Timing depends on the payment provider, card network, and your bank (Stripe states typically 5–10 business days).";
 function buildRefundMailto() {
   let code = null;
   try { code = Billing.getRestoreCode(); } catch (e) { console.error("Local Invoice: getRestoreCode threw", e); }
@@ -1846,7 +1846,7 @@ function showAccessStopNotice() {
   bar.setAttribute("role", "status");
   // The "why" + escape hatch live IN the banner: a verified revocation is in practice a
   // refund, and someone who didn't ask for one needs the support path right here.
-  bar.appendChild(txt("span", null, "Your Local Invoice Pro access has ended. This usually follows a refund. If it's unexpected, email " + SUPPORT_EMAIL + " and we'll sort it out. Everything you made is safe and still here, and every free feature keeps working. You're always welcome back."));
+  bar.appendChild(txt("span", null, "Your Local Invoice Pro access has ended. This usually follows a refund. If it's unexpected, email " + SUPPORT_EMAIL + " and we'll help you look into it. Everything you made is safe and still here, and every free feature keeps working. You're always welcome back."));
   const close = txt("button", "license-nag-x", "×"); close.type = "button";
   close.setAttribute("aria-label", "Dismiss");
   close.onclick = () => bar.remove();
@@ -1899,7 +1899,7 @@ function renderPurchaseError(host, onRetry) {
   const mail = txt("a", "pro-error-mail", SUPPORT_EMAIL);
   mail.href = "mailto:" + SUPPORT_EMAIL;
   support.appendChild(mail);
-  support.appendChild(document.createTextNode(IS_NATIVE ? " with your App Store receipt and we'll sort it out." : " with your Stripe receipt and we'll sort it out."));
+  support.appendChild(document.createTextNode(IS_NATIVE ? " with your App Store receipt and we'll help you look into it." : " with your Stripe receipt and we'll help you look into it."));
   box.appendChild(support);
 
   const retry = txt("button", "btn big pro-error-retry", "Try again");
@@ -2498,9 +2498,9 @@ function showProModal() {
     // self-run money-back (refunds go through Apple's Report a Problem).
     modal.appendChild(txt("p", "hint pro-reassure", "Payment is handled securely by the App Store, with the Apple Account you already use. It restores free on your other Apple devices."));
   } else {
-    // "(via RevenueCat)" because the checkout page's own header says "Secure checkout by
+    // Names both Stripe and RevenueCat because the checkout page's own header says "Secure checkout by
     // RevenueCat" — naming both here keeps that header from reading as a third stranger.
-    modal.appendChild(txt("p", "hint pro-reassure", "Secure checkout by Stripe (via RevenueCat). You'll enter an email for your receipt only. It's not an account, and we never see your card."));
+    modal.appendChild(txt("p", "hint pro-reassure", "Secure checkout by Stripe and RevenueCat. You'll enter an email for your receipt only. It's not an account, and we never see your card."));
     {
       const stmtNote = document.createElement("p");
       stmtNote.style.cssText = "margin:12px 0 0; font-size:13.5px; font-weight:500;";
